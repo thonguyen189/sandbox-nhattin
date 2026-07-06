@@ -1,0 +1,17 @@
+@page
+@model NhatTinWebhookReceiver.Api.Pages.IndexModel
+@{ ViewData["Title"] = "Webhook nhận được"; }
+<h1>Webhook nhận được (referee)</h1>
+<table border="1" cellpadding="6">
+  <thead><tr><th>ID</th><th>Thời điểm</th><th>Method</th><th>Bill</th><th>Status</th><th>Valid?</th><th>Raw body</th></tr></thead>
+  <tbody>
+  @foreach (var w in Model.Items)
+  {
+    <tr>
+      <td>@w.Id</td><td>@w.ReceivedAt</td><td>@w.HttpMethod</td>
+      <td>@w.BillNo</td><td>@w.StatusId - @w.StatusName</td><td>@w.IsValidPayload</td>
+      <td><pre style="max-width:480px;white-space:pre-wrap">@w.RawBody</pre></td>
+    </tr>
+  }
+  </tbody>
+</table>
