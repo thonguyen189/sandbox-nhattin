@@ -33,11 +33,32 @@ $sim = Invoke-RestMethod -Method Post -Uri "$SandboxBaseUrl/sandbox/bills/$billC
 Write-Host "5) Tracking..."
 $tracking = Invoke-RestMethod -Method Get -Uri "$SandboxBaseUrl/v3/bill/tracking?bill_code=$billCode" -Headers $headers
 
-Write-Host "6) Verify webhook received (query receiver DB via its page is manual; here we just report)."
-[PSCustomObject]@{
+Write-Host "6) Verify webhook received by CodeWebHooks receiver..."
+$webhookReceived = $false
+try {
+    # Use Invoke-WebRequest -UseBasicParsing (works on both pwsh and Windows PowerShell 5.1
+    # without depending on an IE-based HTML DOM parser) to fetch the receiver's Razor log page.
+    $receiverResponse = Invoke-WebRequest -Uri "$WebhookBaseUrl/" -UseBasicParsing
+    $receiverHtml = $receiverResponse.Content
+    $webhookReceived = $receiverHtml -match [regex]::Escape($billCode)
+}
+catch {
+    Write-Warning "Could not reach webhook receiver at $WebhookBaseUrl/: $($_.Exception.Message)"
+}
+if (-not $webhookReceived) {
+    Write-Warning "Webhook receiver did not report bill $billCode (spec section 7 requires delivery confirmation)."
+}
+
+$summary = [PSCustomObject]@{
     LoginSuccess    = $login.success
     ProvinceCount   = @($provinces.data).Count
     BillCode        = $billCode
     SimulateSuccess = $sim.success
     TrackingStatus  = $tracking.data[0].bill_status_id
-} | ConvertTo-Json
+    WebhookReceived = $webhookReceived
+}
+$summary | ConvertTo-Json
+
+if (-not $webhookReceived) {
+    exit 1
+}

@@ -1,6 +1,7 @@
 using System.Net;
 using Microsoft.EntityFrameworkCore;
 using NhatTinSandbox.Application.Bills;
+using NhatTinSandbox.Domain.Entities;
 using NhatTinSandbox.Infrastructure.Bills;
 using NhatTinSandbox.Infrastructure.Persistence;
 using NhatTinSandbox.Infrastructure.Webhooks;
@@ -65,5 +66,32 @@ public sealed class WebhookDispatcherTests
         Assert.Contains("\"bill_no\"", handler.LastBody);
         Assert.Contains(bill.BillCode, handler.LastBody);
         Assert.Contains(db.WebhookDeliveryLogs, l => l.BillCode == bill.BillCode && l.Success);
+    }
+
+    [Fact]
+    public async Task Dispatch_DeliversToActiveSubscription_WithDifferentPartnerId()
+    {
+        using var db = NewDb();
+        // Seeded subscription is PartnerId 123736; add one for a different partner (e.g. added via AdminPortal).
+        db.WebhookSubscriptions.Add(new WebhookSubscription
+        {
+            PartnerId = 999999,
+            CallbackUrl = "http://localhost:5099/webhooks/nhattin/status",
+            IsActive = true
+        });
+        await db.SaveChangesAsync();
+
+        var billSvc = new BillService(db);
+        var bill = await billSvc.CreateAsync(SampleInput(), CancellationToken.None);
+        await billSvc.SetStatusAsync(bill.BillCode, 3, "Đã lấy hàng", CancellationToken.None);
+        var billEntity = db.Bills.Single(b => b.BillCode == bill.BillCode);
+
+        var handler = new StubHandler();
+        var dispatcher = new HttpWebhookDispatcher(db, new StubFactory(handler));
+
+        await dispatcher.DispatchAsync(billEntity.Id, CancellationToken.None);
+
+        var otherSub = db.WebhookSubscriptions.Single(s => s.PartnerId == 999999);
+        Assert.Contains(db.WebhookDeliveryLogs, l => l.BillCode == bill.BillCode && l.SubscriptionId == otherSub.Id);
     }
 }

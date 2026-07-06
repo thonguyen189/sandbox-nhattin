@@ -82,4 +82,20 @@ public sealed class AuthTokenServiceTests
 
         Assert.Null(refreshed);
     }
+
+    [Fact]
+    public async Task Refresh_WithDeactivatedAccount_ReturnsNull()
+    {
+        using var db = NewDb();
+        var svc = NewService(db);
+        var first = await svc.SignInAsync("sandbox", "sandbox123", CancellationToken.None);
+
+        var account = db.PartnerAccounts.Single(a => a.Username == "sandbox");
+        account.IsActive = false;
+        db.SaveChanges();
+
+        var refreshed = await svc.RefreshAsync(first!.RefreshToken, CancellationToken.None);
+
+        Assert.Null(refreshed);
+    }
 }

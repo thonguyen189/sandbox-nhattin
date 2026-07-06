@@ -50,7 +50,9 @@ public sealed class JwtAuthTokenService : IAuthTokenService
             return null;
 
         stored.IsRevoked = true; // rotate
-        var account = await _db.PartnerAccounts.FirstAsync(a => a.Id == stored.AccountId, ct);
+        var account = await _db.PartnerAccounts
+            .FirstOrDefaultAsync(a => a.Id == stored.AccountId && a.IsActive, ct);
+        if (account is null) return null; // deactivated account cannot rotate refresh tokens
         return await IssueAsync(account, ct);
     }
 

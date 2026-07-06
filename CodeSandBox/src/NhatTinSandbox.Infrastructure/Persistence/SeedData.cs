@@ -77,7 +77,14 @@ public static class SeedData
                 new Location { Kind = LocationKind.District, Code = "1101", Name = "TP.Cao Bằng", ParentCode = "11", IsNew = false },
                 new Location { Kind = LocationKind.Ward, Code = "00004", Name = "Phường Ba Đình", ParentCode = "01", DistrictCode = "0101", IsNew = true },
                 new Location { Kind = LocationKind.Ward, Code = "27007", Name = "Phường Bến Nghé", ParentCode = "79", DistrictCode = "7901", IsNew = true },
-                new Location { Kind = LocationKind.Ward, Code = "25750", Name = "Phường Sài Gòn", ParentCode = "79", DistrictCode = "7901", IsNew = true });
+                new Location { Kind = LocationKind.Ward, Code = "25750", Name = "Phường Sài Gòn", ParentCode = "79", DistrictCode = "7901", IsNew = true },
+                // Old-unit (is_new=0, the documented default per provinces.md) representative rows,
+                // mirroring the doc's own example response: id "11", "Cao Bằng", is_new "N".
+                // Distinct rows from the new-unit ones above (same province code can appear under
+                // both administrative schemes); does not affect provinces 01/79 or wards
+                // 00004/27007/25750, which remain IsNew=true.
+                new Location { Kind = LocationKind.Province, Code = "11", Name = "Cao Bằng", IsNew = false },
+                new Location { Kind = LocationKind.Ward, Code = "01722", Name = "Phường Hợp Giang", ParentCode = "11", DistrictCode = "1101", IsNew = false });
         }
 
         db.SaveChanges();

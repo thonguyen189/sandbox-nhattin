@@ -32,7 +32,7 @@ public sealed class LocationCatalog : ILocationCatalog
 
     public async Task<IReadOnlyList<WardDto>> GetWardsAsync(string? districtId, string? provinceId, bool isNew, CancellationToken ct)
     {
-        var query = _db.Locations.Where(l => l.Kind == LocationKind.Ward);
+        var query = _db.Locations.Where(l => l.Kind == LocationKind.Ward && l.IsNew == isNew);
         if (!string.IsNullOrEmpty(districtId))
             query = query.Where(l => l.DistrictCode == districtId);
         if (!string.IsNullOrEmpty(provinceId))

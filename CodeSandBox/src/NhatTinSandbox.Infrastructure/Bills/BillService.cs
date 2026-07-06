@@ -14,9 +14,17 @@ public sealed class BillService : IBillService
     // Deterministic, made-up sandbox fee formula (NOT the real Nhất Tín price table).
     internal static decimal CalcMainFee(double weight, decimal codAmount)
     {
-        var weightUnits = Math.Ceiling(weight <= 0 ? 1 : weight);
         var codSurcharge = codAmount > 0 ? 5000m : 0m;
-        return 18000m + (decimal)weightUnits * 3000m + codSurcharge;
+        return CalcBaseMainFee(weight) + codSurcharge;
+    }
+
+    // Base main fee WITHOUT the COD surcharge. Used by the calc-fee path so that cod_fee can be
+    // reported as its own breakdown line without being double-counted inside main_fee (per
+    // calcfee.md, where total_fee == main_fee + insur_fee + remote_fee + cod_fee).
+    private static decimal CalcBaseMainFee(double weight)
+    {
+        var weightUnits = Math.Ceiling(weight <= 0 ? 1 : weight);
+        return 18000m + (decimal)weightUnits * 3000m;
     }
 
     private static string NewBillCode()
@@ -160,14 +168,15 @@ public sealed class BillService : IBillService
         foreach (var s in services)
         {
             if (input.ServiceId.HasValue && input.ServiceId.Value != s.Code) continue;
-            var main = CalcMainFee(input.Weight, cod);
+            var main = CalcBaseMainFee(input.Weight);
+            var codFee = cod > 0 ? 5000m : 0m;
             options.Add(new FeeOption(
                 Weight: input.Weight,
-                TotalFee: main,
+                TotalFee: main + codFee,
                 MainFee: main,
                 InsurFee: 0,
                 RemoteFee: 0,
-                CodFee: cod > 0 ? 5000 : 0,
+                CodFee: codFee,
                 ServiceId: s.Code,
                 ServiceName: s.Name,
                 LeadTime: lead));

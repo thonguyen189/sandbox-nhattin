@@ -44,6 +44,26 @@ public sealed class BillServiceFeeAndOpsTests
     }
 
     [Fact]
+    public async Task CalcFee_WithCod_TotalFeeEqualsSumOfBreakdownComponents()
+    {
+        // calcfee.md: total_fee should equal the sum of the disjoint fee components
+        // (main_fee + insur_fee + remote_fee + cod_fee). Guards against double-counting
+        // the COD surcharge inside main_fee while also reporting it as cod_fee.
+        using var db = NewDb();
+        var svc = new BillService(db);
+        var input = new CalcFeeInput(
+            PartnerId: 123736, Weight: 1.3, Width: 0, Length: 0, Height: 0,
+            ServiceId: null, PaymentMethodId: 10, CodAmount: 120000, CargoValue: 2000000,
+            SProvinceId: "79", SWardId: "27007", RProvinceId: "01", RWardId: "00004");
+
+        var options = await svc.CalcFeeAsync(input, CancellationToken.None);
+
+        Assert.NotEmpty(options);
+        Assert.All(options, o =>
+            Assert.Equal(o.TotalFee, o.MainFee + o.InsurFee + o.RemoteFee + o.CodFee));
+    }
+
+    [Fact]
     public async Task Update_ChangesCod_ReturnsUpdatedSummary()
     {
         using var db = NewDb();

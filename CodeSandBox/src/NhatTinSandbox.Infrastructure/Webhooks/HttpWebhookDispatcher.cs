@@ -49,8 +49,11 @@ public sealed class HttpWebhookDispatcher : IWebhookDispatcher
         };
         var json = JsonSerializer.Serialize(payload);
 
+        // Single-tenant sandbox: deliver to every active subscription regardless of PartnerId,
+        // since Bill has no partner linkage and subscriptions may be added via the AdminPortal
+        // with any PartnerId.
         var subs = await _db.WebhookSubscriptions
-            .Where(s => s.IsActive && s.PartnerId == 123736)
+            .Where(s => s.IsActive)
             .ToListAsync(ct);
 
         var client = _httpFactory.CreateClient("webhook");
