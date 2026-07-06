@@ -1,0 +1,6 @@
+@NhatTinSandbox.Api_HostAddress = http://localhost:5240
+
+GET {{NhatTinSandbox.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
