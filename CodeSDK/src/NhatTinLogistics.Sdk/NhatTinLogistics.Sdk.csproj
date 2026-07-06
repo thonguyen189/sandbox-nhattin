@@ -9,11 +9,24 @@
     <AssemblyName>NhatTinLogistics.Sdk</AssemblyName>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <Version>0.1.0</Version>
+    <PackageId>NhatTinLogistics.Sdk</PackageId>
+    <Authors>TruePos</Authors>
+    <Description>Unofficial C# SDK for the Nhat Tin Logistics (NTL) Open API: auth, bill, location, and webhook parsing. .NET 6.</Description>
+    <PackageTags>nhattin;ntlogistics;logistics;shipping;vietnam;sdk</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Http" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="6.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
 </Project>
