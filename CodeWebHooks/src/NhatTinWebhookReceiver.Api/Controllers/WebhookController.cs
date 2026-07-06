@@ -54,9 +54,12 @@ public sealed class WebhookController : ControllerBase
             if (root.TryGetProperty("ref_code", out var rc)) record.RefCode = rc.GetString();
             record.IsValidPayload = record.BillNo is not null && record.StatusId is not null;
         }
-        catch (JsonException)
+        catch (Exception)
         {
-            record.IsValidPayload = false; // store raw anyway; never "fix" it
+            // Any parse-time failure (malformed JSON, non-object root like an array/scalar,
+            // or a field present with an unexpected type) must never bubble out of here —
+            // store raw anyway; never "fix" it.
+            record.IsValidPayload = false;
         }
     }
 }
