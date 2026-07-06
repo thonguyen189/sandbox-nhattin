@@ -1,0 +1,69 @@
+using System.Net;
+using Microsoft.EntityFrameworkCore;
+using NhatTinSandbox.Application.Bills;
+using NhatTinSandbox.Infrastructure.Bills;
+using NhatTinSandbox.Infrastructure.Persistence;
+using NhatTinSandbox.Infrastructure.Webhooks;
+using Xunit;
+
+namespace NhatTinSandbox.Tests;
+
+public sealed class WebhookDispatcherTests
+{
+    private sealed class StubHandler : HttpMessageHandler
+    {
+        public string? LastBody;
+        public HttpStatusCode Status = HttpStatusCode.OK;
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+        {
+            LastBody = request.Content is null ? null : await request.Content.ReadAsStringAsync(ct);
+            return new HttpResponseMessage(Status) { Content = new StringContent("{\"success\":true}") };
+        }
+    }
+
+    private sealed class StubFactory : IHttpClientFactory
+    {
+        private readonly HttpMessageHandler _handler;
+        public StubFactory(HttpMessageHandler h) => _handler = h;
+        public HttpClient CreateClient(string name) => new(_handler, disposeHandler: false);
+    }
+
+    private static SandboxDbContext NewDb()
+    {
+        var conn = new Microsoft.Data.Sqlite.SqliteConnection("Data Source=:memory:");
+        conn.Open();
+        var options = new DbContextOptionsBuilder<SandboxDbContext>().UseSqlite(conn).Options;
+        var db = new SandboxDbContext(options);
+        db.Database.EnsureCreated();
+        SeedData.EnsureSeeded(db);
+        return db;
+    }
+
+    private static CreateBillInput SampleInput() => new(
+        RefCode: "TP-001", PackageNo: 1, Weight: 2, Width: 1, Length: 1, Height: 1,
+        CargoContent: "Hàng", ServiceId: 91, PaymentMethodId: 10, IsReturnDoc: 0,
+        CodAmount: 0, Note: null, CargoValue: 0, CargoTypeId: 2,
+        SName: "TruePos", SPhone: "0333333333", SAddress: "số 10", SProvinceCode: "01", SWardCode: "00004",
+        RName: "A", RPhone: "0911111111", RAddress: "123", RProvinceCode: "79", RWardCode: "27007",
+        IsDraft: 0, OtherFee: 0, IsInstallation: 0, BillType: 1, BillReturn: null);
+
+    [Fact]
+    public async Task Dispatch_PostsPayloadWithBillNo_AndLogsSuccess()
+    {
+        using var db = NewDb();
+        var billSvc = new BillService(db);
+        var bill = await billSvc.CreateAsync(SampleInput(), CancellationToken.None);
+        await billSvc.SetStatusAsync(bill.BillCode, 3, "Đã lấy hàng", CancellationToken.None);
+        var billEntity = db.Bills.Single(b => b.BillCode == bill.BillCode);
+
+        var handler = new StubHandler();
+        var dispatcher = new HttpWebhookDispatcher(db, new StubFactory(handler));
+
+        await dispatcher.DispatchAsync(billEntity.Id, CancellationToken.None);
+
+        Assert.NotNull(handler.LastBody);
+        Assert.Contains("\"bill_no\"", handler.LastBody);
+        Assert.Contains(bill.BillCode, handler.LastBody);
+        Assert.Contains(db.WebhookDeliveryLogs, l => l.BillCode == bill.BillCode && l.Success);
+    }
+}
