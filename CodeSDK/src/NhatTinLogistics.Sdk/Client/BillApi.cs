@@ -38,4 +38,16 @@ public sealed class BillApi : IBillApi
 
     public Task<NhatTinResponse<List<TrackingResult>>> TrackingAsync(string billCode, CancellationToken ct = default)
         => _http.GetAsync<List<TrackingResult>>($"/v3/bill/tracking?bill_code={Uri.EscapeDataString(billCode)}", ct);
+
+    public string GetPrintUrl(string billCode, int? partnerId = null)
+    {
+        var pid = partnerId ?? _options.PartnerId
+            ?? throw new ArgumentException("PartnerId is required for printing. Set Options.PartnerId or pass partnerId.");
+        var baseUrl = _options.ResolveBaseUrl();
+        return $"{baseUrl}/v3/bill/print?do_code={Uri.EscapeDataString(billCode)}&partner_id={pid}";
+    }
+
+    public Task<byte[]> PrintAsync(string billCode, int? partnerId = null, CancellationToken ct = default)
+        // Best-effort: NhatTin's print host/format is not fully confirmed (see spec §10/§14).
+        => _http.GetBytesAsync(GetPrintUrl(billCode, partnerId), ct);
 }
