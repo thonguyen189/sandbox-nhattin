@@ -783,7 +783,17 @@ public class NhatTinHttpClientTests
     [Fact]
     public async Task Concurrent_401s_refresh_only_once()
     {
+        // Ensure the pool can hand out 5 threads at once so all callers can sit in the barrier
+        // together without starving the pool.
+        ThreadPool.GetMinThreads(out var w, out var c);
+        ThreadPool.SetMinThreads(Math.Max(w, 8), c);
+
         var refreshCount = 0;
+        // Barrier: hold every stale-token (ACCESS) 401 until all 5 callers have arrived, so they
+        // all reach RefreshIfStaleAsync's single-flight guard simultaneously. If the guard were
+        // removed this would yield refreshCount == 5 (or hang → timeout → fail) instead of 1.
+        using var gate = new System.Threading.CountdownEvent(5);
+
         var (client, _, store) = Build(req =>
         {
             var path = req.RequestUri!.AbsolutePath;
@@ -793,19 +803,30 @@ public class NhatTinHttpClientTests
                 Interlocked.Increment(ref refreshCount);
                 return TestResponses.Ok("{\"success\":true,\"data\":{\"jwt_token\":\"ACCESS2\",\"refresh_token\":\"REFRESH2\"}}");
             }
-            // 401 only for requests still carrying the stale token; refreshed requests (ACCESS2) succeed.
-            return req.Headers.Authorization?.Parameter == "ACCESS"
-                ? TestResponses.Json(HttpStatusCode.Unauthorized, "{\"success\":false}")
-                : TestResponses.Ok("{\"success\":true,\"data\":0}");
+            // A business call 401s only while the caller still holds the stale token. Block here
+            // until all 5 stale callers have arrived, forcing concurrent contention on the refresh
+            // guard. The refresh (/refresh-token) and the ACCESS2 retries below never touch the gate.
+            if (req.Headers.Authorization?.Parameter == "ACCESS")
+            {
+                gate.Signal();
+                gate.Wait(TimeSpan.FromSeconds(5));
+                return TestResponses.Json(HttpStatusCode.Unauthorized, "{\"success\":false}");
+            }
+            // Once refreshed to ACCESS2 (a valid token) the same call succeeds — as a real server behaves.
+            return TestResponses.Ok("{\"success\":true,\"data\":0}");
         });
 
-        // Seed the store so all 5 concurrent requests start from the same stale token.
+        // Seed the store so all 5 concurrent callers start with the SAME stale access token.
         store.SetTokens("ACCESS", "REFRESH");
 
+        // Fire on real threads so all 5 can sit in the barrier at once; the synchronous stub would
+        // otherwise block the single enumerating thread and the barrier could never fill.
         var tasks = Enumerable.Range(0, 5)
-            .Select(_ => client.GetAsync<int>("/v3/bill/tracking?bill_code=X", default));
+            .Select(_ => Task.Run(async () => await client.GetAsync<int>("/v3/bill/tracking?bill_code=X", default)))
+            .ToArray();
         var results = await Task.WhenAll(tasks);
 
+        Assert.True(gate.IsSet);                // all 5 stale-token callers reached the barrier concurrently
         Assert.Equal(1, refreshCount);          // only one refresh despite 5 concurrent 401s
         Assert.All(results, r => Assert.True(r.IsSuccess));
     }
