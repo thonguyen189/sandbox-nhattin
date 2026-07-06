@@ -23,4 +23,19 @@ public sealed class BillApi : IBillApi
         request.PartnerId ??= _options.PartnerId;
         return _http.PostAsync<BillResult>("/v3/bill/update-shipping", request, ct);
     }
+
+    public Task<NhatTinResponse<List<CancelResult>>> CancelAsync(IEnumerable<string> billCodes, CancellationToken ct = default)
+        => _http.PostAsync<List<CancelResult>>("/v3/bill/destroy", new { bill_code = billCodes.ToArray() }, ct);
+
+    public Task<NhatTinResponse<List<FeeOption>>> CalcFeeAsync(CalcFeeRequest request, CancellationToken ct = default)
+    {
+        request.PartnerId ??= _options.PartnerId;
+        return _http.PostAsync<List<FeeOption>>("/v3/bill/calc-fee", request, ct);
+    }
+
+    public Task<NhatTinResponse<RevertResult>> RevertAsync(IEnumerable<string> billCodes, CancellationToken ct = default)
+        => _http.PostAsync<RevertResult>("/v3/bill/revert-bill", new { bill_code = billCodes.ToArray() }, ct);
+
+    public Task<NhatTinResponse<List<TrackingResult>>> TrackingAsync(string billCode, CancellationToken ct = default)
+        => _http.GetAsync<List<TrackingResult>>($"/v3/bill/tracking?bill_code={Uri.EscapeDataString(billCode)}", ct);
 }
