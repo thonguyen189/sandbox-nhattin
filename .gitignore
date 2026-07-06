@@ -1,0 +1,50 @@
+# ---- Secrets / local config (NEVER commit) ----
+sql-Server.txt
+*.secret
+appsettings.*.Local.json
+**/App_Data/*.db
+**/App_Data/*.db-shm
+**/App_Data/*.db-wal
+design-time.db
+
+# ---- .NET build output ----
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Ll]og/
+[Ll]ogs/
+
+# ---- .NET / Visual Studio ----
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# ---- Test results ----
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.trx
+*.coverage
+*.coveragexml
+
+# ---- Rider / VS Code ----
+.idea/
+.vscode/
+
+# ---- OS ----
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# ---- Misc archives already in tree ----
+*.rar
