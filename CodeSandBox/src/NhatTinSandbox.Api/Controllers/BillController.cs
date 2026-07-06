@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NhatTinSandbox.Application.Bills;
@@ -36,11 +37,18 @@ public sealed class BillController : ControllerBase
 
     public sealed record BillCodeList(List<string> bill_code);
 
+    // The global SnakeCaseLower naming policy (see Program.cs) would otherwise rewrite
+    // "doCode" -> "do_code". The documented contract (cancelbill.md) requires the camelCase
+    // "doCode" field verbatim, so it is pinned here via [JsonPropertyName].
+    public sealed record CancelResultDto(
+        [property: JsonPropertyName("doCode")] string DoCode,
+        string Message);
+
     [HttpPost("/v3/bill/destroy")]
     public async Task<IActionResult> Destroy([FromBody] BillCodeList body, CancellationToken ct)
     {
         var results = await _bills.CancelAsync(body.bill_code, ct);
-        return Ok(ApiResult.Ok(results.Select(r => new { doCode = r.DoCode, message = r.Message })));
+        return Ok(ApiResult.Ok(results.Select(r => new CancelResultDto(r.DoCode, r.Message))));
     }
 
     [HttpPost("/v3/bill/revert-bill")]
