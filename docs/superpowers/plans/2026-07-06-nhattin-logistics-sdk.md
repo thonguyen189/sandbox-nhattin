@@ -784,8 +784,7 @@ public class NhatTinHttpClientTests
     public async Task Concurrent_401s_refresh_only_once()
     {
         var refreshCount = 0;
-        var businessCall = 0;
-        var (client, _, _) = Build(req =>
+        var (client, _, store) = Build(req =>
         {
             var path = req.RequestUri!.AbsolutePath;
             if (path.EndsWith("/sign-in")) return TestResponses.Ok(SignInBody);
@@ -794,23 +793,22 @@ public class NhatTinHttpClientTests
                 Interlocked.Increment(ref refreshCount);
                 return TestResponses.Ok("{\"success\":true,\"data\":{\"jwt_token\":\"ACCESS2\",\"refresh_token\":\"REFRESH2\"}}");
             }
-            // every business call is 401 the first time it's seen, OK afterwards
-            return Interlocked.Increment(ref businessCall) <= 5
+            // 401 only for requests still carrying the stale token; refreshed requests (ACCESS2) succeed.
+            return req.Headers.Authorization?.Parameter == "ACCESS"
                 ? TestResponses.Json(HttpStatusCode.Unauthorized, "{\"success\":false}")
                 : TestResponses.Ok("{\"success\":true,\"data\":0}");
         });
 
-        // prime the token so all 5 start with the same access token
-        await client.SendAsync<AuthTokenProbe>(HttpMethod.Post, "/v1/auth/sign-in", new { }, authenticated: false, default);
+        // Seed the store so all 5 concurrent requests start from the same stale token.
+        store.SetTokens("ACCESS", "REFRESH");
 
         var tasks = Enumerable.Range(0, 5)
             .Select(_ => client.GetAsync<int>("/v3/bill/tracking?bill_code=X", default));
-        await Task.WhenAll(tasks);
+        var results = await Task.WhenAll(tasks);
 
-        Assert.Equal(1, refreshCount); // only one refresh despite 5 concurrent 401s
+        Assert.Equal(1, refreshCount);          // only one refresh despite 5 concurrent 401s
+        Assert.All(results, r => Assert.True(r.IsSuccess));
     }
-
-    private sealed class AuthTokenProbe { }
 }
 ```
 
