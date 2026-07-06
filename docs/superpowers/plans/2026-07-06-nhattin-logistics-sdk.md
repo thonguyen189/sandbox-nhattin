@@ -139,18 +139,24 @@ namespace NhatTinLogistics.Sdk.Tests.Infrastructure;
 public sealed class StubHttpMessageHandler : HttpMessageHandler
 {
     private readonly Func<HttpRequestMessage, HttpResponseMessage> _responder;
+    private readonly object _gate = new();
 
     public List<HttpRequestMessage> Requests { get; } = new();
     public List<string> RequestBodies { get; } = new();
-    public int CallCount => Requests.Count;
+    public int CallCount { get { lock (_gate) { return Requests.Count; } } }
 
     public StubHttpMessageHandler(Func<HttpRequestMessage, HttpResponseMessage> responder)
         => _responder = responder;
 
+    // Thread-safe: the concurrency test fires parallel requests through one handler.
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        Requests.Add(request);
-        RequestBodies.Add(request.Content is null ? "" : await request.Content.ReadAsStringAsync(cancellationToken));
+        var body = request.Content is null ? "" : await request.Content.ReadAsStringAsync(cancellationToken);
+        lock (_gate)
+        {
+            Requests.Add(request);
+            RequestBodies.Add(body);
+        }
         return _responder(request);
     }
 }
@@ -1338,25 +1344,11 @@ public interface IBillApi
 {
     Task<NhatTinResponse<BillResult>> CreateAsync(CreateBillRequest request, CancellationToken ct = default);
     Task<NhatTinResponse<BillResult>> UpdateAsync(UpdateBillRequest request, CancellationToken ct = default);
-    Task<NhatTinResponse<List<CancelResult>>> CancelAsync(IEnumerable<string> billCodes, CancellationToken ct = default);
-    Task<NhatTinResponse<List<FeeOption>>> CalcFeeAsync(CalcFeeRequest request, CancellationToken ct = default);
-    Task<NhatTinResponse<RevertResult>> RevertAsync(IEnumerable<string> billCodes, CancellationToken ct = default);
-    Task<NhatTinResponse<List<TrackingResult>>> TrackingAsync(string billCode, CancellationToken ct = default);
-    string GetPrintUrl(string billCode, int? partnerId = null);
-    Task<byte[]> PrintAsync(string billCode, int? partnerId = null, CancellationToken ct = default);
+    // Tasks 8 and 9 extend this interface (calc-fee/cancel/revert/tracking, then print).
 }
 ```
 
-> The interface references `CancelResult`, `FeeOption`, `CalcFeeRequest`, `RevertResult`, `TrackingResult` (Task 8). To keep Task 7 compiling on its own, create **stub files** for those five types in this step containing only the empty class + namespace (Task 8 fills them in). Create:
-> - `Types/Responses/CancelResult.cs`, `Types/Responses/FeeOption.cs`, `Types/Responses/RevertResult.cs`, `Types/Responses/TrackingResult.cs`, `Types/Requests/CalcFeeRequest.cs`
->
-> Each stub is exactly (adjust class name + Requests/Responses namespace):
-> ```csharp
-> namespace NhatTinLogistics.Sdk.Types.Responses;
-> public sealed class CancelResult { }
-> ```
-
-- [ ] **Step 7: Write `Client/BillApi.cs`** (create/update implemented; the other methods throw `NotImplementedException` until Tasks 8-9 — this is a deliberate staged stub, replaced with real code in the next two tasks)
+- [ ] **Step 7: Write `Client/BillApi.cs`**
 
 ```csharp
 using NhatTinLogistics.Sdk.Http;
@@ -1384,25 +1376,10 @@ public sealed class BillApi : IBillApi
         request.PartnerId ??= _options.PartnerId;
         return _http.PostAsync<BillResult>("/v3/bill/update-shipping", request, ct);
     }
-
-    public Task<NhatTinResponse<List<CancelResult>>> CancelAsync(IEnumerable<string> billCodes, CancellationToken ct = default)
-        => throw new NotImplementedException();
-
-    public Task<NhatTinResponse<List<FeeOption>>> CalcFeeAsync(CalcFeeRequest request, CancellationToken ct = default)
-        => throw new NotImplementedException();
-
-    public Task<NhatTinResponse<RevertResult>> RevertAsync(IEnumerable<string> billCodes, CancellationToken ct = default)
-        => throw new NotImplementedException();
-
-    public Task<NhatTinResponse<List<TrackingResult>>> TrackingAsync(string billCode, CancellationToken ct = default)
-        => throw new NotImplementedException();
-
-    public string GetPrintUrl(string billCode, int? partnerId = null) => throw new NotImplementedException();
-
-    public Task<byte[]> PrintAsync(string billCode, int? partnerId = null, CancellationToken ct = default)
-        => throw new NotImplementedException();
 }
 ```
+
+> Tasks 8 and 9 grow `IBillApi` and `BillApi` incrementally, each adding its methods together with the DTOs and tests that cover them — so there are no `NotImplementedException` bodies or empty stub types in any intermediate commit.
 
 - [ ] **Step 8: Run to verify pass**
 
@@ -1421,12 +1398,14 @@ git commit -m "feat(sdk): BillApi create + update-shipping with typed DTOs"
 ### Task 8: BillApi — calc-fee, cancel, revert, tracking
 
 **Files:**
-- Modify (replace stubs): `CodeSDK/src/NhatTinLogistics.Sdk/Types/Requests/CalcFeeRequest.cs`, `Types/Responses/FeeOption.cs`, `Types/Responses/CancelResult.cs`, `Types/Responses/RevertResult.cs`, `Types/Responses/TrackingResult.cs`
+- Create: `CodeSDK/src/NhatTinLogistics.Sdk/Types/Requests/CalcFeeRequest.cs`, `Types/Responses/FeeOption.cs`, `Types/Responses/CancelResult.cs`, `Types/Responses/RevertResult.cs`, `Types/Responses/TrackingResult.cs`
+- Modify: `CodeSDK/src/NhatTinLogistics.Sdk/Client/IBillApi.cs` (add four method signatures)
 - Modify: `CodeSDK/src/NhatTinLogistics.Sdk/Client/BillApi.cs` (implement the four methods)
 - Test: `CodeSDK/tests/NhatTinLogistics.Sdk.Tests/BillApiOpsTests.cs`
 
 **Interfaces:**
-- Produces: filled `CalcFeeRequest`, `FeeOption`, `CancelResult` (`DoCode`, `Message`), `RevertResult` (`Success`, `Failed` string lists), `TrackingResult` (+ `TrackingHistory`); `BillApi.CalcFeeAsync/CancelAsync/RevertAsync/TrackingAsync` implemented.
+- Consumes: `IBillApi` (Create/Update from Task 7).
+- Produces: `CalcFeeRequest`, `FeeOption`, `CancelResult` (`DoCode`, `Message`), `RevertResult` (`Success`, `Failed` string lists), `TrackingResult` (+ `TrackingHistory`); `IBillApi`/`BillApi` gain `CalcFeeAsync`/`CancelAsync`/`RevertAsync`/`TrackingAsync`.
 
 - [ ] **Step 1: Write the failing test** (`BillApiOpsTests.cs`)
 
@@ -1515,9 +1494,9 @@ public class BillApiOpsTests
 - [ ] **Step 2: Run to verify it fails**
 
 Run: `dotnet test CodeSDK/NhatTinLogisticsSdk.sln --filter FullyQualifiedName~BillApiOpsTests`
-Expected: FAIL — stub DTOs have no members / methods throw NotImplementedException.
+Expected: FAIL — `CalcFeeRequest`/`FeeOption`/`CancelResult`/`RevertResult`/`TrackingResult` and the four `BillApi` methods do not exist.
 
-- [ ] **Step 3: Replace `Types/Requests/CalcFeeRequest.cs`**
+- [ ] **Step 3: Write `Types/Requests/CalcFeeRequest.cs`**
 
 ```csharp
 using System.Text.Json.Serialization;
@@ -1549,7 +1528,7 @@ public sealed class CalcFeeRequest
 }
 ```
 
-- [ ] **Step 4: Replace `Types/Responses/FeeOption.cs`**
+- [ ] **Step 4: Write `Types/Responses/FeeOption.cs`**
 
 ```csharp
 using System.Text.Json.Serialization;
@@ -1570,7 +1549,7 @@ public sealed class FeeOption
 }
 ```
 
-- [ ] **Step 5: Replace `Types/Responses/CancelResult.cs`**
+- [ ] **Step 5: Write `Types/Responses/CancelResult.cs`**
 
 ```csharp
 using System.Text.Json.Serialization;
@@ -1585,7 +1564,7 @@ public sealed class CancelResult
 }
 ```
 
-- [ ] **Step 6: Replace `Types/Responses/RevertResult.cs`**
+- [ ] **Step 6: Write `Types/Responses/RevertResult.cs`**
 
 ```csharp
 using System.Text.Json.Serialization;
@@ -1599,7 +1578,7 @@ public sealed class RevertResult
 }
 ```
 
-- [ ] **Step 7: Replace `Types/Responses/TrackingResult.cs`** (numeric fields are strings on the wire — keep them as `string?`)
+- [ ] **Step 7: Write `Types/Responses/TrackingResult.cs`** (numeric fields are strings on the wire — keep them as `string?`)
 
 ```csharp
 using System.Text.Json.Serialization;
@@ -1672,7 +1651,19 @@ public sealed class TrackingHistory
 }
 ```
 
-- [ ] **Step 8: Implement the four methods in `Client/BillApi.cs`** — replace the four `NotImplementedException` bodies for Cancel/CalcFee/Revert/Tracking (leave `GetPrintUrl`/`PrintAsync` throwing until Task 9). Add `using System.Linq;` is covered by ImplicitUsings.
+- [ ] **Step 8: Extend `IBillApi`, then implement in `BillApi`** — first add the four signatures to the interface, then the matching methods to the class. (`List<>` and LINQ are covered by ImplicitUsings.)
+
+Add these four lines inside the `IBillApi` interface body in `Client/IBillApi.cs` (replacing the `// Tasks 8 and 9 extend this interface` comment):
+
+```csharp
+    Task<NhatTinResponse<List<CancelResult>>> CancelAsync(IEnumerable<string> billCodes, CancellationToken ct = default);
+    Task<NhatTinResponse<List<FeeOption>>> CalcFeeAsync(CalcFeeRequest request, CancellationToken ct = default);
+    Task<NhatTinResponse<RevertResult>> RevertAsync(IEnumerable<string> billCodes, CancellationToken ct = default);
+    Task<NhatTinResponse<List<TrackingResult>>> TrackingAsync(string billCode, CancellationToken ct = default);
+    // Task 9 adds GetPrintUrl + PrintAsync.
+```
+
+Then add the implementations inside the `BillApi` class body in `Client/BillApi.cs`:
 
 ```csharp
     public Task<NhatTinResponse<List<CancelResult>>> CancelAsync(IEnumerable<string> billCodes, CancellationToken ct = default)
@@ -1708,6 +1699,7 @@ git commit -m "feat(sdk): BillApi calc-fee, cancel, revert, tracking"
 ### Task 9: BillApi print + LocationApi
 
 **Files:**
+- Modify: `CodeSDK/src/NhatTinLogistics.Sdk/Client/IBillApi.cs` (add `GetPrintUrl` + `PrintAsync` signatures)
 - Modify: `CodeSDK/src/NhatTinLogistics.Sdk/Client/BillApi.cs` (implement `GetPrintUrl` + `PrintAsync`)
 - Create: `CodeSDK/src/NhatTinLogistics.Sdk/Types/Responses/LocationDtos.cs`
 - Create: `CodeSDK/src/NhatTinLogistics.Sdk/Client/ILocationApi.cs`
@@ -1797,9 +1789,18 @@ public class PrintAndLocationTests
 - [ ] **Step 2: Run to verify it fails**
 
 Run: `dotnet test CodeSDK/NhatTinLogisticsSdk.sln --filter FullyQualifiedName~PrintAndLocationTests`
-Expected: FAIL — LocationApi/DTOs missing; GetPrintUrl throws NotImplementedException.
+Expected: FAIL — `LocationApi`/DTOs missing; `GetPrintUrl`/`PrintAsync` not on `BillApi`.
 
-- [ ] **Step 3: Implement print in `Client/BillApi.cs`** — replace the two remaining `NotImplementedException` bodies:
+- [ ] **Step 3: Add print to `IBillApi` + implement in `BillApi`** — add the two signatures to the interface (replacing the `// Task 9 adds GetPrintUrl + PrintAsync.` comment), then add the methods to the class.
+
+Add to `Client/IBillApi.cs`:
+
+```csharp
+    string GetPrintUrl(string billCode, int? partnerId = null);
+    Task<byte[]> PrintAsync(string billCode, int? partnerId = null, CancellationToken ct = default);
+```
+
+Add to `Client/BillApi.cs`:
 
 ```csharp
     public string GetPrintUrl(string billCode, int? partnerId = null)
@@ -2429,6 +2430,6 @@ git commit -m "chore(sdk): version, README, CHANGELOG, NuGet metadata + pack"
 - §14 open points → documented in code comments (print) + README notes. ✅
 - §15 build sequence → task order matches. ✅
 
-**Placeholder scan:** No "TBD"/"add error handling"/"similar to". The intentional staged stubs (Task 7 empty DTOs + `NotImplementedException`) are explicitly called out and fully replaced with real code in Tasks 8-9, with tests proving the replacement. ✅
+**Placeholder scan:** No "TBD"/"add error handling"/"similar to". `IBillApi`/`BillApi` grow incrementally (Task 7 create/update, Task 8 ops, Task 9 print) — no `NotImplementedException` bodies or empty stub types in any intermediate commit. ✅
 
-**Type consistency:** `NhatTinResponse<T>`, `NhatTinHttpClient.SendAsync/PostAsync/GetAsync/GetBytesAsync`, `IBillApi` method names/signatures, `AuthToken.JwtToken/RefreshToken`, `BillResult.Status`, `WebhookPayload.Status`, `ITokenStore.SetTokens/Clear` are used identically across tasks. `IBillApi` is declared complete in Task 7 so no signature drift when Tasks 8-9 fill it in. ✅
+**Type consistency:** `NhatTinResponse<T>`, `NhatTinHttpClient.SendAsync/PostAsync/GetAsync/GetBytesAsync`, `IBillApi` method names/signatures, `AuthToken.JwtToken/RefreshToken`, `BillResult.Status`, `WebhookPayload.Status`, `ITokenStore.SetTokens/Clear` are used identically across tasks. Each task that adds an `IBillApi` method also adds its `BillApi` implementation + covering test in the same task, so the interface never has an unimplemented member. ✅
