@@ -1,0 +1,22 @@
+@page
+@model NhatTinSandbox.AdminPortal.Pages.Deliveries.IndexModel
+@{ ViewData["Title"] = "Webhook Delivery Logs"; }
+<p><a href="/Bills">&larr; Vận đơn</a></p>
+<h1>Webhook Delivery Logs</h1>
+<table border="1" cellpadding="6">
+  <thead><tr><th>ID</th><th>Bill</th><th>URL</th><th>HTTP</th><th>Success</th><th>Time</th><th></th></tr></thead>
+  <tbody>
+  @foreach (var l in Model.Logs)
+  {
+    <tr>
+      <td>@l.Id</td><td>@l.BillCode</td><td>@l.CallbackUrl</td>
+      <td>@l.HttpStatusCode</td><td>@l.Success</td><td>@l.AttemptedAt</td>
+      <td>
+        <form method="post" asp-page-handler="Resend" asp-route-billId="@l.BillId" style="display:inline">
+          <button type="submit">Gửi lại</button>
+        </form>
+      </td>
+    </tr>
+  }
+  </tbody>
+</table>

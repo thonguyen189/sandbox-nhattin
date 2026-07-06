@@ -1,0 +1,18 @@
+@page
+@model NhatTinSandbox.AdminPortal.Pages.Bills.IndexModel
+@{ ViewData["Title"] = "Vận đơn"; }
+<h1>Vận đơn Sandbox</h1>
+<p><a href="/Subscriptions">Webhook Subscriptions</a> | <a href="/Deliveries">Webhook Delivery Logs</a></p>
+<table class="table" border="1" cellpadding="6">
+  <thead><tr><th>Bill Code</th><th>Ref</th><th>Status</th><th>COD</th><th>Total Fee</th><th></th></tr></thead>
+  <tbody>
+  @foreach (var b in Model.Bills)
+  {
+    <tr>
+      <td>@b.BillCode</td><td>@b.RefCode</td><td>@b.StatusId</td>
+      <td>@b.CodAmount</td><td>@b.TotalFee</td>
+      <td><a href="/Bills/Details?billCode=@b.BillCode">Chi tiết / Đổi trạng thái</a></td>
+    </tr>
+  }
+  </tbody>
+</table>

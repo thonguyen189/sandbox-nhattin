@@ -1,0 +1,26 @@
+@page
+@model NhatTinSandbox.AdminPortal.Pages.Subscriptions.IndexModel
+@{ ViewData["Title"] = "Webhook Subscriptions"; }
+<p><a href="/Bills">&larr; Vận đơn</a></p>
+<h1>Webhook Subscriptions</h1>
+<form method="post" asp-page-handler="Add">
+  <input name="PartnerId" value="123736" />
+  <input name="CallbackUrl" placeholder="http://localhost:5099/webhooks/nhattin/status" size="60" />
+  <button type="submit">Thêm</button>
+</form>
+<table border="1" cellpadding="6">
+  <thead><tr><th>ID</th><th>Partner</th><th>Callback URL</th><th>Active</th><th></th></tr></thead>
+  <tbody>
+  @foreach (var s in Model.Subscriptions)
+  {
+    <tr>
+      <td>@s.Id</td><td>@s.PartnerId</td><td>@s.CallbackUrl</td><td>@s.IsActive</td>
+      <td>
+        <form method="post" asp-page-handler="Toggle" asp-route-id="@s.Id" style="display:inline">
+          <button type="submit">Bật/Tắt</button>
+        </form>
+      </td>
+    </tr>
+  }
+  </tbody>
+</table>

@@ -1,25 +1,23 @@
-var builder = WebApplication.CreateBuilder(args);
+using Microsoft.EntityFrameworkCore;
+using NhatTinSandbox.Application.Bills;
+using NhatTinSandbox.Application.Webhooks;
+using NhatTinSandbox.Infrastructure.Bills;
+using NhatTinSandbox.Infrastructure.Persistence;
+using NhatTinSandbox.Infrastructure.Webhooks;
 
-// Add services to the container.
+var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorPages();
 
+var cs = builder.Configuration.GetConnectionString("Sandbox")
+         ?? "Data Source=../NhatTinSandbox.Api/App_Data/nhattin-sandbox.db";
+builder.Services.AddDbContext<SandboxDbContext>(o => o.UseSqlite(cs));
+builder.Services.AddScoped<IBillService, BillService>();
+builder.Services.AddScoped<IWebhookDispatcher, HttpWebhookDispatcher>();
+builder.Services.AddHttpClient("webhook");
+
 var app = builder.Build();
-
-// Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
-{
-    app.UseExceptionHandler("/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    app.UseHsts();
-}
-
-app.UseHttpsRedirection();
 app.UseStaticFiles();
-
 app.UseRouting();
-
-app.UseAuthorization();
-
 app.MapRazorPages();
-
+app.MapGet("/", () => Results.Redirect("/Bills"));
 app.Run();

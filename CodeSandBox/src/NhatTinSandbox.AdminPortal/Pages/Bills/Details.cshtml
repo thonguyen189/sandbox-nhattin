@@ -1,0 +1,42 @@
+@page
+@model NhatTinSandbox.AdminPortal.Pages.Bills.DetailsModel
+@{ ViewData["Title"] = "Chi tiết vận đơn"; }
+<p><a href="/Bills">&larr; Danh sách</a></p>
+@if (Model.Bill is null)
+{
+  <p>Không tìm thấy vận đơn <b>@Model.BillCode</b>.</p>
+}
+else
+{
+  <h1>@Model.Bill.BillCode</h1>
+  <ul>
+    <li>Ref: @Model.Bill.RefCode</li>
+    <li>Trạng thái hiện tại: <b>@Model.Bill.StatusId</b></li>
+    <li>Người nhận: @Model.Bill.ReceiverName - @Model.Bill.ReceiverPhone</li>
+    <li>COD: @Model.Bill.CodAmount | Tổng phí: @Model.Bill.TotalFee</li>
+  </ul>
+
+  <form method="post">
+    <input type="hidden" name="BillCode" value="@Model.BillCode" />
+    <label>Đổi trạng thái:</label>
+    <select name="NewStatusId">
+      @foreach (var s in Model.Statuses)
+      {
+        <option value="@s.Code">@s.Code - @s.Name</option>
+      }
+    </select>
+    <input type="text" name="Reason" placeholder="Lý do (tùy chọn)" />
+    <button type="submit">Cập nhật & gửi webhook</button>
+  </form>
+
+  <h3>Lịch sử trạng thái</h3>
+  <table border="1" cellpadding="6">
+    <thead><tr><th>Status</th><th>Tên</th><th>Lý do</th><th>Thời điểm</th></tr></thead>
+    <tbody>
+    @foreach (var h in Model.Histories)
+    {
+      <tr><td>@h.StatusId</td><td>@h.StatusName</td><td>@h.Reason</td><td>@h.ChangedAt</td></tr>
+    }
+    </tbody>
+  </table>
+}
