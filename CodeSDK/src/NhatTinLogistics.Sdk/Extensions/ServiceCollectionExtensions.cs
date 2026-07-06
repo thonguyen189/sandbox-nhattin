@@ -20,7 +20,10 @@ public static class ServiceCollectionExtensions
             http.Timeout = TimeSpan.FromMilliseconds(options.TimeoutMilliseconds);
         });
         services.AddScoped(sp =>
-            new NhatTinLogisticsClient(sp.GetRequiredService<NhatTinHttpClient>(), options));
+            new NhatTinLogisticsClient(
+                sp.GetRequiredService<NhatTinHttpClient>(),
+                options,
+                sp.GetRequiredService<ITokenStore>()));
 
         return services;
     }

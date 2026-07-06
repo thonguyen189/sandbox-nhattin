@@ -17,7 +17,13 @@ public sealed class NhatTinLogisticsClientOptions
 
     public int TimeoutMilliseconds { get; set; } = 90_000;
 
-    /// <summary>When true, the SDK signs in lazily and refreshes the token on 401.</summary>
+    /// <summary>
+    /// When true (default), the SDK signs in lazily using Username/Password and refreshes the token on 401.
+    /// When false, the caller fully manages auth: seed a token via <c>client.Tokens.SetTokens(accessToken, refreshToken)</c>.
+    /// The SDK then attaches the seeded token but never signs in or refreshes; a 401 is returned as
+    /// <c>IsSuccess=false</c>, and the caller refreshes via <c>client.Auth.RefreshTokenAsync(...)</c> and re-seeds
+    /// <c>client.Tokens</c>. Username/Password are not required in this mode.
+    /// </summary>
     public bool AutoAuthenticate { get; set; } = true;
 
     public string ResolveBaseUrl()

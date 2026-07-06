@@ -42,7 +42,9 @@ public sealed class NhatTinHttpClient
 
         var response = await SendOnceAsync(method, path, body, tokenUsed, ct).ConfigureAwait(false);
 
-        if (authenticated && response.StatusCode == HttpStatusCode.Unauthorized)
+        // Only refresh-and-retry when the SDK owns auth. With AutoAuthenticate=false the caller
+        // manages tokens: attach whatever is seeded and return the raw response (a 401 → IsSuccess=false).
+        if (authenticated && _options.AutoAuthenticate && response.StatusCode == HttpStatusCode.Unauthorized)
         {
             response.Dispose();
             await RefreshIfStaleAsync(tokenUsed, ct).ConfigureAwait(false);
@@ -153,7 +155,11 @@ public sealed class NhatTinHttpClient
                     .ConfigureAwait(false);
                 if (res.IsSuccess && res.Data is not null && !string.IsNullOrEmpty(res.Data.JwtToken))
                 {
-                    _tokens.SetTokens(res.Data.JwtToken, res.Data.RefreshToken);
+                    // A refresh response may omit refresh_token; don't wipe the good one we still hold.
+                    var newRefresh = string.IsNullOrEmpty(res.Data.RefreshToken)
+                        ? (_tokens.RefreshToken ?? "")
+                        : res.Data.RefreshToken;
+                    _tokens.SetTokens(res.Data.JwtToken, newRefresh);
                     return;
                 }
             }

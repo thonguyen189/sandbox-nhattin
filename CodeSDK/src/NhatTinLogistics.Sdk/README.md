@@ -52,6 +52,36 @@ builder.Services.AddNhatTinLogisticsClient(o =>
 // inject NhatTinLogisticsClient anywhere
 ```
 
+## Manual token mode (`AutoAuthenticate = false`)
+
+By default the SDK signs in lazily and refreshes the token on a 401. Set `AutoAuthenticate = false`
+to fully manage auth yourself — the SDK will never sign in or refresh; it just attaches whatever
+token you seed and returns the raw response.
+
+```csharp
+var client = new NhatTinLogisticsClient(new NhatTinLogisticsClientOptions
+{
+    BaseUrl = "https://apisandbox.ntlogistics.vn",
+    AutoAuthenticate = false,   // Username/Password not required in this mode
+});
+
+// Seed the token you obtained elsewhere:
+client.Tokens.SetTokens(accessToken, refreshToken);
+
+var res = await client.Bill.CreateAsync(request);
+
+if (!res.IsSuccess && res.HttpStatusCode == 401)
+{
+    // The SDK does NOT auto-refresh here — do it yourself, then re-seed:
+    var refreshed = await client.Auth.RefreshTokenAsync(refreshToken);
+    if (refreshed.IsSuccess)
+    {
+        client.Tokens.SetTokens(refreshed.Data!.JwtToken, refreshed.Data.RefreshToken);
+        res = await client.Bill.CreateAsync(request); // retry
+    }
+}
+```
+
 ## Handling webhooks
 
 ```csharp
