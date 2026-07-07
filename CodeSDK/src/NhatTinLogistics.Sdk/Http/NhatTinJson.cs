@@ -12,5 +12,8 @@ public static class NhatTinJson
         PropertyNameCaseInsensitive = true,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        // NhatTin sends numbers/nulls where strings are expected (verified live 2026-07-07);
+        // tolerate that globally so string properties never throw on a raw number.
+        Converters = { new TolerantStringConverter() },
     };
 }

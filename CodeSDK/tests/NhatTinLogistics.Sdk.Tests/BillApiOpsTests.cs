@@ -20,15 +20,20 @@ public class BillApiOpsTests
     }
 
     [Fact]
-    public async Task CancelAsync_posts_bill_code_array_and_maps_doCode()
+    public async Task CancelAsync_maps_success_and_failed_object()
     {
+        // Real sandbox shape: data is an OBJECT { success:[{doCode,message}], failed:[] },
+        // NOT a bare array. Captured live 2026-07-07 (CP252694164).
         var (api, handler) = Build(_ =>
-            TestResponses.Ok("{\"success\":true,\"data\":[{\"doCode\":\"E9\",\"message\":\"ok\"}]}"));
+            TestResponses.Ok("{\"success\":true,\"data\":{\"success\":[{\"doCode\":\"CP1\",\"message\":\"Bill CP1 has canceled successful.\"}],\"failed\":[]},\"message\":\"Bill canceled successfully\"}"));
 
         var resp = await api.CancelAsync(new[] { "CP1" });
 
         Assert.True(resp.IsSuccess);
-        Assert.Equal("E9", resp.Data![0].DoCode);
+        Assert.Single(resp.Data!.Succeeded);
+        Assert.Equal("CP1", resp.Data.Succeeded[0].DoCode);
+        Assert.EndsWith("has canceled successful.", resp.Data.Succeeded[0].Message);
+        Assert.Empty(resp.Data.Failed);
         Assert.EndsWith("/v3/bill/destroy", handler.Requests[0].RequestUri!.AbsolutePath);
         Assert.Contains("\"bill_code\":[\"CP1\"]", handler.RequestBodies[0]);
     }
@@ -62,6 +67,21 @@ public class BillApiOpsTests
     }
 
     [Fact]
+    public async Task CalcFeeAsync_tolerates_null_service_id()
+    {
+        // Real sandbox returns service_id:null on calc-fee. Captured live 2026-07-07.
+        var (api, _) = Build(_ =>
+            TestResponses.Ok("{\"success\":true,\"data\":[{\"weight\":2,\"total_fee\":41936,\"main_fee\":41936,\"service_id\":null,\"lead_time\":\"2026-01-01 17:55:00\"}],\"message\":\"Calculate Successfull\"}"),
+            partnerId: 124823);
+
+        var resp = await api.CalcFeeAsync(new CalcFeeRequest { Weight = 2, PaymentMethodId = 10, SProvinceId = "01", SWardId = "00004", RProvinceId = "79", RWardId = "25750" });
+
+        Assert.True(resp.IsSuccess);
+        Assert.Null(resp.Data![0].ServiceId);
+        Assert.Equal(41936m, resp.Data[0].TotalFee);
+    }
+
+    [Fact]
     public async Task TrackingAsync_gets_with_query_and_tolerates_string_numbers()
     {
         var (api, handler) = Build(_ =>
@@ -75,5 +95,25 @@ public class BillApiOpsTests
         Assert.Equal(4, resp.Data[0].BillStatusId);
         Assert.Equal("/v3/bill/tracking", handler.Requests[0].RequestUri!.AbsolutePath);
         Assert.Contains("bill_code=CP1", handler.Requests[0].RequestUri!.Query);
+    }
+
+    [Fact]
+    public async Task TrackingAsync_tolerates_raw_numbers_and_null_fee_fields()
+    {
+        // Real sandbox is inconsistent: measures arrive as strings ("weight":"2") but fees
+        // arrive as raw JSON numbers ("cod_amt":0, "main_fee":41936) and some are null
+        // ("lifting_fee":null). Captured live 2026-07-07 (CP252694164).
+        var (api, _) = Build(_ =>
+            TestResponses.Ok("{\"success\":true,\"data\":[{\"bill_code\":\"CP1\",\"weight\":\"2\",\"cod_amt\":0,\"main_fee\":41936,\"total_fee\":41936,\"lifting_fee\":null,\"bill_status_id\":2}]}"));
+
+        var resp = await api.TrackingAsync("CP1");
+
+        Assert.True(resp.IsSuccess);
+        Assert.Equal("2", resp.Data![0].Weight);       // JSON string preserved
+        Assert.Equal("0", resp.Data[0].CodAmount);     // JSON number → string
+        Assert.Equal("41936", resp.Data[0].MainFee);   // JSON number → string
+        Assert.Equal("41936", resp.Data[0].TotalFee);
+        Assert.Null(resp.Data[0].LiftingFee);          // JSON null preserved
+        Assert.Equal(2, resp.Data[0].BillStatusId);
     }
 }

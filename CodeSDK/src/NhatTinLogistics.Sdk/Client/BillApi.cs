@@ -24,8 +24,8 @@ public sealed class BillApi : IBillApi
         return _http.PostAsync<BillResult>("/v3/bill/update-shipping", request, ct);
     }
 
-    public Task<NhatTinResponse<List<CancelResult>>> CancelAsync(IEnumerable<string> billCodes, CancellationToken ct = default)
-        => _http.PostAsync<List<CancelResult>>("/v3/bill/destroy", new { bill_code = billCodes.ToArray() }, ct);
+    public Task<NhatTinResponse<CancelResponse>> CancelAsync(IEnumerable<string> billCodes, CancellationToken ct = default)
+        => _http.PostAsync<CancelResponse>("/v3/bill/destroy", new { bill_code = billCodes.ToArray() }, ct);
 
     public Task<NhatTinResponse<List<FeeOption>>> CalcFeeAsync(CalcFeeRequest request, CancellationToken ct = default)
     {

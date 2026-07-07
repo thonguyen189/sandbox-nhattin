@@ -18,6 +18,32 @@ public sealed class NhatTinLogisticsClientOptions
     public int TimeoutMilliseconds { get; set; } = 90_000;
 
     /// <summary>
+    /// When true (default), the SDK refreshes the access token proactively just before it expires (using the
+    /// TTL from the sign-in/refresh response) instead of waiting for a 401. Disable to keep the reactive-only
+    /// behavior. If the TTL is unknown/unparseable, proactive refresh is skipped and the 401 path still applies.
+    /// </summary>
+    public bool EnableProactiveRefresh { get; set; } = true;
+
+    /// <summary>How long before the access token's expiry to refresh it proactively. Default 60 seconds.</summary>
+    public TimeSpan TokenExpirySkew { get; set; } = TimeSpan.FromSeconds(60);
+
+    /// <summary>
+    /// When true (default), the SDK retries transient failures (transport errors, timeouts, HTTP 5xx/429/408)
+    /// for idempotent calls only (GET plus calc-fee/sign-in/refresh-token). Write calls — create, update-shipping,
+    /// destroy, revert-bill — are never retried, to avoid duplicating a side effect.
+    /// </summary>
+    public bool EnableRetry { get; set; } = true;
+
+    /// <summary>Maximum number of retries after the initial attempt (default 3 → up to 4 total attempts).</summary>
+    public int MaxRetries { get; set; } = 3;
+
+    /// <summary>Base delay for exponential backoff (default 200ms → ~200/400/800ms across retries, plus jitter).</summary>
+    public TimeSpan RetryBaseDelay { get; set; } = TimeSpan.FromMilliseconds(200);
+
+    /// <summary>Upper bound on a single backoff delay (default 5s).</summary>
+    public TimeSpan RetryMaxDelay { get; set; } = TimeSpan.FromSeconds(5);
+
+    /// <summary>
     /// When true (default), the SDK signs in lazily using Username/Password and refreshes the token on 401.
     /// When false, the caller fully manages auth: seed a token via <c>client.Tokens.SetTokens(accessToken, refreshToken)</c>.
     /// The SDK then attaches the seeded token but never signs in or refreshes; a 401 is returned as

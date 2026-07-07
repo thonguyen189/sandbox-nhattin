@@ -2,7 +2,7 @@
 
 Unofficial C# SDK for the **Nhat Tin Logistics (NTL) Open API** — modeled on the tingee-csharp SDK. Targets **.NET 6**.
 
-Covers: JWT auth (auto sign-in + refresh on 401), bills (create / update / cancel / calc-fee / revert / tracking / print), locations (provinces / districts / wards), and typed webhook parsing.
+Covers: JWT auth (auto sign-in + **proactive refresh before expiry** + refresh on 401), bills (create / update / cancel / calc-fee / revert / tracking / print), locations (provinces / districts / wards), typed webhook parsing, and **transient-fault retry with backoff** for idempotent calls.
 
 > **Webhooks are not signed by Nhat Tin.** This SDK parses the payload into a typed object; there is no signature to verify (this is the key difference from Tingee's SDK).
 
@@ -81,6 +81,29 @@ if (!res.IsSuccess && res.HttpStatusCode == 401)
     }
 }
 ```
+
+## Resilience (auth refresh + retry)
+
+With `AutoAuthenticate = true` (default), the SDK **refreshes the access token proactively** just before it
+expires — using the `token_expires_in` / `refresh_expires_in` TTL from the login response — instead of only
+reacting to a 401. It also **retries transient failures** (transport errors, timeouts, HTTP 5xx/429/408) with
+exponential backoff + jitter, but **only for idempotent calls**: every `GET`, plus `calc-fee`, `sign-in`,
+`refresh-token`. **Bill writes (create / update-shipping / destroy / revert) are never retried**, so a network
+blip cannot duplicate a shipment. HTTP 200 business errors (`success:false`) are real answers and are not retried.
+
+All of this is on by default; tune or disable it via options:
+
+| Option | Default | Purpose |
+| --- | --- | --- |
+| `EnableProactiveRefresh` | `true` | Refresh before expiry (vs. only on 401). |
+| `TokenExpirySkew` | `60s` | How early before expiry to refresh. |
+| `EnableRetry` | `true` | Retry transient failures on idempotent calls. |
+| `MaxRetries` | `3` | Retries after the initial attempt. |
+| `RetryBaseDelay` | `200ms` | Base for exponential backoff. |
+| `RetryMaxDelay` | `5s` | Cap on a single backoff delay. |
+
+> NhatTin has **no idempotency key**, so deduplication of bill creation is the POS's responsibility — the SDK
+> deliberately never retries a write. See `docs/superpowers/specs/2026-07-07-nhattin-sdk-resilience-design.md`.
 
 ## Handling webhooks
 
