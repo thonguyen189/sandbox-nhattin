@@ -43,6 +43,27 @@ public class NhatTinHttpClientTests
     }
 
     [Fact]
+    public async Task SignIn_captures_partner_id_into_options()
+    {
+        NhatTinLogisticsClientOptions? captured = null;
+        var (client, _, _) = Build(
+            req => req.RequestUri!.AbsolutePath.EndsWith("/sign-in")
+                ? TestResponses.Ok("{\"success\":true,\"data\":{\"jwt_token\":\"tok\",\"partner_id\":124823}}")
+                : TestResponses.Ok("{\"success\":true,\"data\":1}"),
+            configure: o =>
+            {
+                o.AutoAuthenticate = true;
+                captured = o;
+            });
+
+        var resp = await client.GetAsync<int>("/v3/bill/tracking?bill_code=CP1", default);
+
+        Assert.True(resp.IsSuccess);
+        Assert.NotNull(captured);
+        Assert.Equal(124823, captured!.PartnerId);
+    }
+
+    [Fact]
     public async Task Business_failure_does_not_throw()
     {
         var (client, _, _) = Build(req =>

@@ -13,5 +13,5 @@ public interface IBillApi
     Task<NhatTinResponse<RevertResult>> RevertAsync(IEnumerable<string> billCodes, CancellationToken ct = default);
     Task<NhatTinResponse<List<TrackingResult>>> TrackingAsync(string billCode, CancellationToken ct = default);
     string GetPrintUrl(string billCode, int? partnerId = null);
-    Task<byte[]> PrintAsync(string billCode, int? partnerId = null, CancellationToken ct = default);
+    Task<PrintResult> PrintAsync(string billCode, int? partnerId = null, CancellationToken ct = default);
 }

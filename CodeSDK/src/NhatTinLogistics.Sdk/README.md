@@ -98,5 +98,5 @@ if (NhatTinWebhookParser.TryParse(raw, out var payload))
 
 - All calls return `NhatTinResponse<T>` (`IsSuccess`, `Message`, `Data`). Business failures (`success:false`) do **not** throw; transport / JSON / auth failures throw `NhatTinApiException`. Call `.EnsureSuccess()` to convert a business failure into a throw.
 - `tracking` returns some numeric fields as strings; those are kept as `string?`.
-- `PartnerId` defaults from options for calc-fee / update / print; override per call where supported.
-- Print endpoint host/format is not fully confirmed upstream; `GetPrintUrl` builds the URL, `PrintAsync` is best-effort.
+- `PartnerId` defaults from options for calc-fee / update / print; override per call where supported. It is also **auto-captured from the sign-in response** (`data.partner_id`) when you don't set it explicitly.
+- Print: verified live to return a `{success,message,data}` JSON envelope (HTTP 200 + `success:false` on error, e.g. `[ERR-00019]`) — a successful label may be HTML. `GetPrintUrl` builds the URL; `PrintAsync` returns a **`PrintResult`** (`Success`, `IsJson`/`IsHtml`, `ContentType`, `Content` bytes, `AsText()`, `Message`, `ErrorCode`) so you can branch on the real content type instead of assuming a PDF/binary.

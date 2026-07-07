@@ -55,15 +55,35 @@ public sealed class NhatTinHttpClient
         return await ReadResponseAsync<T>(response, ct).ConfigureAwait(false);
     }
 
-    public async Task<byte[]> GetBytesAsync(string url, CancellationToken ct)
+    /// <summary>
+    /// Fetches a print response as raw bytes + content-type, using the same auth flow as <see cref="SendAsync{T}"/>
+    /// (ensure-authenticated, single 401 refresh-and-retry when AutoAuthenticate). NhatTin returns HTTP 200 for
+    /// both success (HTML) and business errors (a JSON envelope), so this never throws on an HTTP-error envelope;
+    /// only transport/network failures surface as <see cref="NhatTinApiException"/>. The caller inspects
+    /// <see cref="PrintResult.Success"/>.
+    /// </summary>
+    public async Task<PrintResult> GetPrintAsync(string url, CancellationToken ct)
     {
         await EnsureAuthenticatedAsync(ct).ConfigureAwait(false);
-        var response = await SendOnceAsync(HttpMethod.Get, url, null, _tokens.AccessToken, ct).ConfigureAwait(false);
+        var tokenUsed = _tokens.AccessToken;
+
+        var response = await SendOnceAsync(HttpMethod.Get, url, null, tokenUsed, ct).ConfigureAwait(false);
+
+        // Mirror SendAsync: only refresh-and-retry (once) when the SDK owns auth.
+        if (_options.AutoAuthenticate && response.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            response.Dispose();
+            await RefreshIfStaleAsync(tokenUsed, ct).ConfigureAwait(false);
+            tokenUsed = _tokens.AccessToken;
+            response = await SendOnceAsync(HttpMethod.Get, url, null, tokenUsed, ct).ConfigureAwait(false);
+        }
+
         using (response)
         {
-            if (!response.IsSuccessStatusCode)
-                throw new NhatTinApiException($"Print request failed. Status {(int)response.StatusCode}.", (int)response.StatusCode);
-            return await response.Content.ReadAsByteArrayAsync(ct).ConfigureAwait(false);
+            var status = (int)response.StatusCode;
+            var contentType = response.Content.Headers.ContentType?.ToString();
+            var bytes = await response.Content.ReadAsByteArrayAsync(ct).ConfigureAwait(false);
+            return new PrintResult(status, contentType, bytes);
         }
     }
 
@@ -181,5 +201,9 @@ public sealed class NhatTinHttpClient
             throw new NhatTinApiException($"Sign-in failed: {res.Message}", res.HttpStatusCode, res.RawBody);
 
         _tokens.SetTokens(res.Data.JwtToken, res.Data.RefreshToken);
+
+        // The sign-in envelope now carries partner_id; adopt it as the default unless the caller set one.
+        if (_options.PartnerId is null && res.Data.PartnerId is not null)
+            _options.PartnerId = res.Data.PartnerId;
     }
 }

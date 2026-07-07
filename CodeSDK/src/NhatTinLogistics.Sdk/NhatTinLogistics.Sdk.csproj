@@ -9,7 +9,7 @@
     <AssemblyName>NhatTinLogistics.Sdk</AssemblyName>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <PackageId>NhatTinLogistics.Sdk</PackageId>
     <Authors>TruePos</Authors>
     <Description>Unofficial C# SDK for the Nhat Tin Logistics (NTL) Open API: auth, bill, location, and webhook parsing. .NET 6.</Description>

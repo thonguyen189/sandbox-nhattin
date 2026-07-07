@@ -47,7 +47,8 @@ public sealed class BillApi : IBillApi
         return $"{baseUrl}/v3/bill/print?do_code={Uri.EscapeDataString(billCode)}&partner_id={pid}";
     }
 
-    public Task<byte[]> PrintAsync(string billCode, int? partnerId = null, CancellationToken ct = default)
-        // Best-effort: NhatTin's print host/format is not fully confirmed (see spec §10/§14).
-        => _http.GetBytesAsync(GetPrintUrl(billCode, partnerId), ct);
+    public Task<PrintResult> PrintAsync(string billCode, int? partnerId = null, CancellationToken ct = default)
+        // Content-type-aware: NhatTin returns HTTP 200 for both success (HTML) and JSON error envelopes,
+        // so inspect PrintResult.Success rather than the HTTP status.
+        => _http.GetPrintAsync(GetPrintUrl(billCode, partnerId), ct);
 }

@@ -9,4 +9,5 @@ public sealed class AuthToken
     [JsonPropertyName("token_expires_in")] public string? TokenExpiresIn { get; set; }
     [JsonPropertyName("refresh_token")] public string RefreshToken { get; set; } = "";
     [JsonPropertyName("refresh_expires_in")] public string? RefreshExpiresIn { get; set; }
+    [JsonPropertyName("partner_id")] public int? PartnerId { get; set; }
 }
