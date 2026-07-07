@@ -8,7 +8,7 @@ public class WebhookDbContextFactory : IDesignTimeDbContextFactory<WebhookDbCont
     public WebhookDbContext CreateDbContext(string[] args)
     {
         var options = new DbContextOptionsBuilder<WebhookDbContext>()
-            .UseSqlite("Data Source=design-time.db").Options;
+            .UseSqlServer("Server=192.168.200.8;Database=NhatTinWebhooks;User Id=vipos;Password=CHANGE_ME;TrustServerCertificate=True;Encrypt=False").Options;
         return new WebhookDbContext(options);
     }
 }

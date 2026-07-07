@@ -10,9 +10,9 @@ public sealed class AuthTokenServiceTests
 {
     private static SandboxDbContext NewDb()
     {
-        var conn = new Microsoft.Data.Sqlite.SqliteConnection("Data Source=:memory:");
-        conn.Open();
-        var options = new DbContextOptionsBuilder<SandboxDbContext>().UseSqlite(conn).Options;
+        var options = new DbContextOptionsBuilder<SandboxDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
         var db = new SandboxDbContext(options);
         db.Database.EnsureCreated();
         SeedData.EnsureSeeded(db);

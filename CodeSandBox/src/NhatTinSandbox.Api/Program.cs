@@ -8,6 +8,7 @@ using NhatTinSandbox.Infrastructure.Auth;
 using NhatTinSandbox.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
 
 // snake_case for BOTH inbound binding (s_name -> SName) and outbound JSON,
 // matching NhatTinAPIDocumentation/vi/ field names. .NET 8 built-in policy.
@@ -39,8 +40,7 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-// Ensure App_Data exists, migrate, seed.
-Directory.CreateDirectory(Path.Combine(app.Environment.ContentRootPath, "App_Data"));
+// Migrate, seed.
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<SandboxDbContext>();

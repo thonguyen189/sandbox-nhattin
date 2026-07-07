@@ -2,6 +2,7 @@
 sql-Server.txt
 *.secret
 appsettings.*.Local.json
+appsettings.Local.json
 **/App_Data/*.db
 **/App_Data/*.db-shm
 **/App_Data/*.db-wal

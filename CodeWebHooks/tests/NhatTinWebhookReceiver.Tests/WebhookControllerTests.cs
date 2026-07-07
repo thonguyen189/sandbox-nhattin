@@ -10,10 +10,10 @@ using Xunit;
 
 namespace NhatTinWebhookReceiver.Tests;
 
-public sealed class WebhookControllerTests : IClassFixture<WebApplicationFactory<Program>>
+public sealed class WebhookControllerTests : IClassFixture<WebhookApiFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
-    public WebhookControllerTests(WebApplicationFactory<Program> factory) => _factory = factory;
+    private readonly WebhookApiFactory _factory;
+    public WebhookControllerTests(WebhookApiFactory factory) => _factory = factory;
 
     [Fact]
     public async Task PostStatus_ReturnsAck()

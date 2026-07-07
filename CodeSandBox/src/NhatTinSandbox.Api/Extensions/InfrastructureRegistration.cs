@@ -18,8 +18,8 @@ public static class InfrastructureRegistration
         services.Configure<JwtOptions>(config.GetSection(JwtOptions.SectionName));
 
         var cs = config.GetConnectionString("Sandbox")
-                 ?? "Data Source=App_Data/nhattin-sandbox.db";
-        services.AddDbContext<SandboxDbContext>(o => o.UseSqlite(cs));
+                 ?? "Server=192.168.200.8;Database=NhatTinSandbox;User Id=vipos;Password=CHANGE_ME;TrustServerCertificate=True;Encrypt=False";
+        services.AddDbContext<SandboxDbContext>(o => o.UseSqlServer(cs));
 
         services.AddScoped<IAuthTokenService, JwtAuthTokenService>();
         services.AddScoped<ILocationCatalog, LocationCatalog>();

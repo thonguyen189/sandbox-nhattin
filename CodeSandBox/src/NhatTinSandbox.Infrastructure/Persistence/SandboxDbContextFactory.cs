@@ -8,7 +8,7 @@ public class SandboxDbContextFactory : IDesignTimeDbContextFactory<SandboxDbCont
     public SandboxDbContext CreateDbContext(string[] args)
     {
         var options = new DbContextOptionsBuilder<SandboxDbContext>()
-            .UseSqlite("Data Source=design-time.db")
+            .UseSqlServer("Server=192.168.200.8;Database=NhatTinSandbox;User Id=vipos;Password=CHANGE_ME;TrustServerCertificate=True;Encrypt=False")
             .Options;
         return new SandboxDbContext(options);
     }

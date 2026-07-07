@@ -19,12 +19,12 @@ public class SandboxDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder b)
     {
         b.Entity<Bill>().HasIndex(x => x.BillCode).IsUnique();
-        b.Entity<Bill>().Property(x => x.CodAmount).HasConversion<double>();
+        b.Entity<Bill>().Property(x => x.CodAmount).HasPrecision(18, 2);
         b.Entity<Bill>().Property(x => x.CargoValue);
-        b.Entity<Bill>().Property(x => x.MainFee).HasConversion<double>();
-        b.Entity<Bill>().Property(x => x.TotalFee).HasConversion<double>();
-        b.Entity<Bill>().Property(x => x.OtherFee).HasConversion<double>();
-        b.Entity<BillStatusHistory>().Property(x => x.ShippingFee).HasConversion<double>();
+        b.Entity<Bill>().Property(x => x.MainFee).HasPrecision(18, 2);
+        b.Entity<Bill>().Property(x => x.TotalFee).HasPrecision(18, 2);
+        b.Entity<Bill>().Property(x => x.OtherFee).HasPrecision(18, 2);
+        b.Entity<BillStatusHistory>().Property(x => x.ShippingFee).HasPrecision(18, 2);
         b.Entity<WebhookDeliveryLog>().HasIndex(x => x.BillCode);
         b.Entity<Location>().HasIndex(x => new { x.Kind, x.Code });
         b.Entity<MasterDataItem>().HasIndex(x => new { x.Kind, x.Code });
