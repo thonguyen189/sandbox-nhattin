@@ -38,9 +38,10 @@ artifacts/
 *.coverage
 *.coveragexml
 
-# ---- Rider / VS Code ----
+# ---- Rider / VS Code / Obsidian ----
 .idea/
 .vscode/
+.obsidian/
 
 # ---- OS ----
 Thumbs.db
