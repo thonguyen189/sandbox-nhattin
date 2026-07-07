@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using NhatTinSandbox.Application.Bills;
+using NhatTinSandbox.Application.Webhooks;
 using NhatTinSandbox.Domain.Entities;
 using NhatTinSandbox.Domain.Enums;
 using NhatTinSandbox.Infrastructure.Persistence;
@@ -9,7 +10,13 @@ namespace NhatTinSandbox.Infrastructure.Bills;
 public sealed class BillService : IBillService
 {
     private readonly SandboxDbContext _db;
-    public BillService(SandboxDbContext db) => _db = db;
+    private readonly IWebhookDispatcher _webhooks;
+
+    public BillService(SandboxDbContext db, IWebhookDispatcher webhooks)
+    {
+        _db = db;
+        _webhooks = webhooks;
+    }
 
     // Deterministic, made-up sandbox fee formula (NOT the real Nhất Tín price table).
     internal static decimal CalcMainFee(double weight, decimal codAmount)
@@ -187,6 +194,7 @@ public sealed class BillService : IBillService
     public async Task<IReadOnlyList<CancelResult>> CancelAsync(IReadOnlyList<string> billCodes, CancellationToken ct)
     {
         var results = new List<CancelResult>();
+        var dispatched = new List<int>();
         foreach (var code in billCodes)
         {
             var bill = await _db.Bills.FirstOrDefaultAsync(b => b.BillCode == code, ct);
@@ -204,6 +212,7 @@ public sealed class BillService : IBillService
                     BillId = bill.Id, StatusId = bill.StatusId, StatusName = StatusName(bill.StatusId),
                     ShippingFee = bill.TotalFee, ChangedAt = DateTimeOffset.UtcNow
                 });
+                dispatched.Add(bill.Id);
                 results.Add(new CancelResult(code, $"Bill {code} has canceled successful"));
             }
             else
@@ -212,6 +221,11 @@ public sealed class BillService : IBillService
             }
         }
         await _db.SaveChangesAsync(ct);
+        // Auto-emit a status webhook for each successfully cancelled bill (status -> 6),
+        // mirroring the /sandbox/.../simulate-status behaviour. Dispatch after persisting so
+        // the dispatcher reads the committed status + history.
+        foreach (var billId in dispatched)
+            await _webhooks.DispatchAsync(billId, ct);
         return results;
     }
 
@@ -219,6 +233,7 @@ public sealed class BillService : IBillService
     {
         var success = new List<string>();
         var failed = new List<string>();
+        var dispatched = new List<int>();
         foreach (var code in billCodes)
         {
             var bill = await _db.Bills.FirstOrDefaultAsync(b => b.BillCode == code, ct);
@@ -231,6 +246,7 @@ public sealed class BillService : IBillService
                     BillId = bill.Id, StatusId = bill.StatusId, StatusName = StatusName(bill.StatusId),
                     ShippingFee = bill.TotalFee, ChangedAt = DateTimeOffset.UtcNow
                 });
+                dispatched.Add(bill.Id);
                 success.Add(code);
             }
             else
@@ -239,6 +255,11 @@ public sealed class BillService : IBillService
             }
         }
         await _db.SaveChangesAsync(ct);
+        // Auto-emit a status webhook for each successfully reverted bill (status -> 9),
+        // mirroring the /sandbox/.../simulate-status behaviour. Dispatch after persisting so
+        // the dispatcher reads the committed status + history.
+        foreach (var billId in dispatched)
+            await _webhooks.DispatchAsync(billId, ct);
         return new RevertResult(success, failed);
     }
 }

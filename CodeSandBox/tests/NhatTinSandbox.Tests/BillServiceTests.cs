@@ -31,7 +31,7 @@ public sealed class BillServiceTests
     public async Task Create_AssignsBillCodeStartingWithCP_AndStatus2()
     {
         using var db = NewDb();
-        var svc = new BillService(db);
+        var svc = new BillService(db, new RecordingWebhookDispatcher());
 
         var summary = await svc.CreateAsync(SampleInput(), CancellationToken.None);
 
@@ -45,7 +45,7 @@ public sealed class BillServiceTests
     public async Task Create_DraftBill_StartsAtStatus12()
     {
         using var db = NewDb();
-        var svc = new BillService(db);
+        var svc = new BillService(db, new RecordingWebhookDispatcher());
 
         var draft = SampleInput() with { IsDraft = 1 };
         var summary = await svc.CreateAsync(draft, CancellationToken.None);
@@ -57,7 +57,7 @@ public sealed class BillServiceTests
     public async Task GetByCode_ReturnsCreatedBill()
     {
         using var db = NewDb();
-        var svc = new BillService(db);
+        var svc = new BillService(db, new RecordingWebhookDispatcher());
         var created = await svc.CreateAsync(SampleInput(), CancellationToken.None);
 
         var found = await svc.GetByCodeAsync(created.BillCode, CancellationToken.None);
@@ -70,7 +70,7 @@ public sealed class BillServiceTests
     public async Task SetStatus_ChangesStatus_AndRecordsHistory()
     {
         using var db = NewDb();
-        var svc = new BillService(db);
+        var svc = new BillService(db, new RecordingWebhookDispatcher());
         var created = await svc.CreateAsync(SampleInput(), CancellationToken.None);
 
         var updated = await svc.SetStatusAsync(created.BillCode, 3, "Đã lấy hàng", CancellationToken.None);

@@ -26,8 +26,8 @@ public sealed class AuthTokenServiceTests
             Issuer = "nhattin-sandbox",
             Audience = "nhattin-sandbox",
             SigningKey = "sandbox-signing-key-please-change-0123456789",
-            AccessTtlSeconds = 900,
-            RefreshTtlSeconds = 3600
+            AccessTtlSeconds = 86400,   // 24h
+            RefreshTtlSeconds = 604800  // 7d
         });
         return new JwtAuthTokenService(db, opt);
     }
@@ -44,7 +44,7 @@ public sealed class AuthTokenServiceTests
         Assert.Equal("Bearer", result!.TokenType);
         Assert.False(string.IsNullOrWhiteSpace(result.JwtToken));
         Assert.False(string.IsNullOrWhiteSpace(result.RefreshToken));
-        Assert.Equal(900, result.TokenExpiresInSeconds);
+        Assert.Equal(86400, result.TokenExpiresInSeconds);
         Assert.True(result.RefreshExpiresInSeconds > result.TokenExpiresInSeconds);
     }
 

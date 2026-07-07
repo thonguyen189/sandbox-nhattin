@@ -52,7 +52,7 @@ public sealed class WebhookDispatcherTests
     public async Task Dispatch_PostsPayloadWithBillNo_AndLogsSuccess()
     {
         using var db = NewDb();
-        var billSvc = new BillService(db);
+        var billSvc = new BillService(db, new RecordingWebhookDispatcher());
         var bill = await billSvc.CreateAsync(SampleInput(), CancellationToken.None);
         await billSvc.SetStatusAsync(bill.BillCode, 3, "Đã lấy hàng", CancellationToken.None);
         var billEntity = db.Bills.Single(b => b.BillCode == bill.BillCode);
@@ -81,7 +81,7 @@ public sealed class WebhookDispatcherTests
         });
         await db.SaveChangesAsync();
 
-        var billSvc = new BillService(db);
+        var billSvc = new BillService(db, new RecordingWebhookDispatcher());
         var bill = await billSvc.CreateAsync(SampleInput(), CancellationToken.None);
         await billSvc.SetStatusAsync(bill.BillCode, 3, "Đã lấy hàng", CancellationToken.None);
         var billEntity = db.Bills.Single(b => b.BillCode == bill.BillCode);

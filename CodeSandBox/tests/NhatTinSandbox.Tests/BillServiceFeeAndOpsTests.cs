@@ -31,7 +31,7 @@ public sealed class BillServiceFeeAndOpsTests
     public async Task CalcFee_ReturnsAtLeastOneOption_WithPositiveFee()
     {
         using var db = NewDb();
-        var svc = new BillService(db);
+        var svc = new BillService(db, new RecordingWebhookDispatcher());
         var input = new CalcFeeInput(
             PartnerId: 123736, Weight: 1.3, Width: 0, Length: 0, Height: 0,
             ServiceId: null, PaymentMethodId: 10, CodAmount: 120000, CargoValue: 2000000,
@@ -50,7 +50,7 @@ public sealed class BillServiceFeeAndOpsTests
         // (main_fee + insur_fee + remote_fee + cod_fee). Guards against double-counting
         // the COD surcharge inside main_fee while also reporting it as cod_fee.
         using var db = NewDb();
-        var svc = new BillService(db);
+        var svc = new BillService(db, new RecordingWebhookDispatcher());
         var input = new CalcFeeInput(
             PartnerId: 123736, Weight: 1.3, Width: 0, Length: 0, Height: 0,
             ServiceId: null, PaymentMethodId: 10, CodAmount: 120000, CargoValue: 2000000,
@@ -67,7 +67,7 @@ public sealed class BillServiceFeeAndOpsTests
     public async Task Update_ChangesCod_ReturnsUpdatedSummary()
     {
         using var db = NewDb();
-        var svc = new BillService(db);
+        var svc = new BillService(db, new RecordingWebhookDispatcher());
         var created = await svc.CreateAsync(SampleInput(), CancellationToken.None);
 
         var updated = await svc.UpdateAsync(new UpdateBillInput(
@@ -84,7 +84,7 @@ public sealed class BillServiceFeeAndOpsTests
     public async Task Cancel_ReturnsPerCodeResult()
     {
         using var db = NewDb();
-        var svc = new BillService(db);
+        var svc = new BillService(db, new RecordingWebhookDispatcher());
         var created = await svc.CreateAsync(SampleInput(), CancellationToken.None);
 
         var result = await svc.CancelAsync(new[] { created.BillCode }, CancellationToken.None);
@@ -99,7 +99,7 @@ public sealed class BillServiceFeeAndOpsTests
     public async Task Revert_SplitsSuccessAndFailed()
     {
         using var db = NewDb();
-        var svc = new BillService(db);
+        var svc = new BillService(db, new RecordingWebhookDispatcher());
         var created = await svc.CreateAsync(SampleInput(), CancellationToken.None);
         await svc.SetStatusAsync(created.BillCode, 3, "picked", CancellationToken.None); // eligible
 

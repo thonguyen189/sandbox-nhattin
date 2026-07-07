@@ -37,8 +37,20 @@ public sealed class AuthController : ControllerBase
     {
         jwt_token = r.JwtToken,
         token_type = r.TokenType,
-        token_expires_in = $"{r.TokenExpiresInSeconds}s",
+        token_expires_in = HumanizeTtl(r.TokenExpiresInSeconds, preferDays: false),
         refresh_token = r.RefreshToken,
-        refresh_expires_in = $"{r.RefreshExpiresInSeconds}s"
+        refresh_expires_in = HumanizeTtl(r.RefreshExpiresInSeconds, preferDays: true)
     };
+
+    // Matches the real Nhất Tín TTL style: access token -> "{h}h" (e.g. "24h"),
+    // refresh token -> "{d}d" (e.g. "7d"), falling back to raw seconds ("{s}s")
+    // when the value is not evenly divisible into the preferred unit.
+    private static string HumanizeTtl(int seconds, bool preferDays)
+    {
+        if (preferDays && seconds % 86400 == 0)
+            return $"{seconds / 86400}d";
+        if (seconds % 3600 == 0)
+            return $"{seconds / 3600}h";
+        return $"{seconds}s";
+    }
 }

@@ -22,6 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\NhatTinSandbox.Api\NhatTinSandbox.Api.csproj" />
     <ProjectReference Include="..\..\src\NhatTinSandbox.Infrastructure\NhatTinSandbox.Infrastructure.csproj" />
   </ItemGroup>
 
