@@ -1,0 +1,23 @@
+<Project>
+
+  <!--
+    Khoá System.Text.Json về dòng 6.0.x cho MỌI project trong solution NhatTinSandbox.
+
+    Bối cảnh: sau khi hạ net8 -> net6, những máy còn giữ artifact build cũ
+    (NhatTinSandbox.Api.dll tham chiếu System.Text.Json 7.0.0.0) trong bin/obj
+    chưa dọn sẽ gặp lỗi CS1705 khi project Test (dùng 6.0.0.0) tham chiếu tới.
+
+    Ghim version tại đây có 2 tác dụng:
+      1. Cố định System.Text.Json = 6.0.x (assembly 6.0.0.0) đồng nhất mọi project,
+         không bị "trôi" version dù restore từ feed nội bộ hay nuget.org.
+      2. Là MSBuild input dùng chung -> buộc mọi project build lại khi pull code mới,
+         nhờ đó DLL cũ 7.0.0.0 bị thay thế thay vì tái sử dụng.
+
+    Lưu ý: đây chỉ là lớp phòng thủ. Cách chắc chắn nhất khi đổi target framework
+    vẫn là dọn sạch bin/obj (git clean -xfd) rồi rebuild.
+  -->
+  <ItemGroup>
+    <PackageReference Include="System.Text.Json" Version="6.0.10" />
+  </ItemGroup>
+
+</Project>
