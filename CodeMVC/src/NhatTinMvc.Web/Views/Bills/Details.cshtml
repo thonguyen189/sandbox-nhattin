@@ -1,0 +1,210 @@
+@model BillDetailViewModel
+@{
+    ViewData["Title"] = "Vận đơn " + Model.Bill.BillCode;
+    ViewData["CurrentBill"] = Model.Bill.BillCode;
+}
+@functions {
+    static string FmtUnix(long? s) => s.HasValue
+        ? DateTimeOffset.FromUnixTimeSeconds(s.Value).ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")
+        : "—";
+}
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h1 class="h3 mb-0">
+        Vận đơn <span class="font-monospace">@Model.Bill.BillCode</span>
+    </h1>
+    <a asp-controller="Bills" asp-action="Index" class="btn btn-outline-secondary btn-sm">← Danh sách</a>
+</div>
+
+@if (Model.IsError && !string.IsNullOrEmpty(Model.Message))
+{
+    <div class="alert alert-danger" role="alert">@Model.Message</div>
+}
+
+<!-- Tóm tắt -->
+<div class="card shadow-sm mb-3">
+    <div class="card-header d-flex align-items-center justify-content-between">
+        <span class="fw-semibold">Tóm tắt</span>
+        <span class="badge bg-secondary fs-6" data-bill-status data-bill-code="@Model.Bill.BillCode">
+            @Model.Bill.LastStatusName (#@Model.Bill.LastStatusId)
+        </span>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <dl class="row small mb-0">
+                    <dt class="col-5 text-muted">Mã vận đơn</dt>
+                    <dd class="col-7 font-monospace">@Model.Bill.BillCode</dd>
+
+                    <dt class="col-5 text-muted">Mã tham chiếu</dt>
+                    <dd class="col-7">@(string.IsNullOrEmpty(Model.Bill.RefCode) ? "—" : Model.Bill.RefCode)</dd>
+
+                    <dt class="col-5 text-muted">Partner ID</dt>
+                    <dd class="col-7">@(Model.Bill.PartnerId?.ToString() ?? "—")</dd>
+
+                    <dt class="col-5 text-muted">Người gửi</dt>
+                    <dd class="col-7">@Model.Bill.SenderName <span class="text-muted">@Model.Bill.SenderPhone</span></dd>
+
+                    <dt class="col-5 text-muted">Người nhận</dt>
+                    <dd class="col-7">@Model.Bill.ReceiverName <span class="text-muted">@Model.Bill.ReceiverPhone</span></dd>
+                </dl>
+            </div>
+            <div class="col-md-6">
+                <dl class="row small mb-0">
+                    <dt class="col-5 text-muted">Khối lượng</dt>
+                    <dd class="col-7">@Model.Bill.Weight.ToString("0.##") kg</dd>
+
+                    <dt class="col-5 text-muted">Tổng phí</dt>
+                    <dd class="col-7">@Model.Bill.TotalFee.ToString("#,0") ₫</dd>
+
+                    <dt class="col-5 text-muted">Dịch vụ</dt>
+                    <dd class="col-7">@(Model.Bill.ServiceName ?? "—") (#@Model.Bill.ServiceId)</dd>
+
+                    <dt class="col-5 text-muted">Tạo lúc</dt>
+                    <dd class="col-7">@Model.Bill.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")</dd>
+
+                    <dt class="col-5 text-muted">Cập nhật TT</dt>
+                    <dd class="col-7">@(Model.Bill.LastStatusAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss") ?? "—")</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+    <div class="card-footer d-flex flex-wrap gap-2">
+        <a asp-controller="Bills" asp-action="Update" asp-route-id="@Model.Bill.BillCode" class="btn btn-outline-primary btn-sm">Cập nhật</a>
+
+        <form asp-controller="Bills" asp-action="Cancel" method="post" class="d-inline"
+              onsubmit="return confirm('Hủy vận đơn @Model.Bill.BillCode?');">
+            <input type="hidden" name="billCode" value="@Model.Bill.BillCode" />
+            <button type="submit" class="btn btn-outline-danger btn-sm">Hủy</button>
+        </form>
+
+        <form asp-controller="Bills" asp-action="Revert" method="post" class="d-inline"
+              onsubmit="return confirm('Hoàn vận đơn @Model.Bill.BillCode?');">
+            <input type="hidden" name="billCode" value="@Model.Bill.BillCode" />
+            <button type="submit" class="btn btn-outline-warning btn-sm">Hoàn</button>
+        </form>
+
+        <a asp-controller="Bills" asp-action="Print" asp-route-id="@Model.Bill.BillCode" class="btn btn-outline-secondary btn-sm">In</a>
+        @if (Model.PrintUrl != null)
+        {
+            <a href="@Model.PrintUrl" target="_blank" rel="noopener" class="btn btn-outline-secondary btn-sm">Mở link in ↗</a>
+        }
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- Giả lập trạng thái -->
+    <div class="col-lg-5">
+        <div class="card shadow-sm h-100">
+            <div class="card-header fw-semibold">Giả lập trạng thái (sandbox)</div>
+            <div class="card-body">
+                <form asp-controller="Bills" asp-action="Simulate" method="post">
+                    <input type="hidden" name="billCode" value="@Model.Bill.BillCode" />
+                    <div class="mb-3">
+                        <label class="form-label" for="statusId">Trạng thái</label>
+                        <select name="statusId" id="statusId" class="form-select">
+                            @foreach (var s in Enum.GetValues<BillStatus>())
+                            {
+                                <option value="@((int)s)" selected="@((int)s == Model.SimulateStatusId)">@s (#@((int)s))</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="reason">Lý do</label>
+                        <input type="text" name="reason" id="reason" class="form-control" value="@Model.SimulateReason" placeholder="Tùy chọn" />
+                    </div>
+                    <button type="submit" class="btn btn-primary">Giả lập → bắn webhook</button>
+                </form>
+                <p class="small text-muted mt-3 mb-0">
+                    Sandbox sẽ đổi trạng thái và bắn webhook; trang này cập nhật live.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lịch sử sự kiện -->
+    <div class="col-lg-7">
+        <div class="card shadow-sm h-100">
+            <div class="card-header fw-semibold">Lịch sử trạng thái</div>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Mã TT</th>
+                            <th>Trạng thái</th>
+                            <th>Thời gian</th>
+                            <th>Nguồn</th>
+                        </tr>
+                    </thead>
+                    <tbody id="events-body">
+                        @if (Model.Events.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-4">Chưa có sự kiện trạng thái.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var e in Model.Events)
+                            {
+                                <tr>
+                                    <td><span class="badge bg-info">@e.StatusId</span></td>
+                                    <td>@e.StatusName</td>
+                                    <td class="small">@FmtUnix(e.StatusTime)</td>
+                                    <td>
+                                        <span class="badge @(e.Source == "Webhook" ? "bg-success" : "bg-secondary")">@e.Source</span>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (Model.Tracking != null && Model.Tracking.Count > 0)
+{
+    var tr = Model.Tracking[0];
+    <div class="card shadow-sm mt-3">
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <span class="fw-semibold">Tracking NhatTin</span>
+            <span class="small text-muted">@tr.BillStatusDesc (#@tr.BillStatusId)</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm table-striped align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>#</th>
+                        <th>Thao tác</th>
+                        <th>Khu vực</th>
+                        <th>Thời gian</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (tr.Histories.Count == 0)
+                    {
+                        <tr><td colspan="4" class="text-center text-muted py-3">Chưa có lịch sử tracking.</td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var h in tr.Histories)
+                        {
+                            <tr>
+                                <td>@h.Sequence</td>
+                                <td>@(h.Operation ?? h.LogStatus)</td>
+                                <td class="small">@(string.Join(" · ", new[] { h.District, h.City }.Where(x => !string.IsNullOrEmpty(x))))</td>
+                                <td class="small">@h.LocTime</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+else if (!string.IsNullOrEmpty(Model.Message))
+{
+    <p class="small text-muted mt-3 mb-0">Tracking: @Model.Message</p>
+}

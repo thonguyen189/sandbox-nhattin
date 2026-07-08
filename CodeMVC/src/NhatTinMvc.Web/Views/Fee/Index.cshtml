@@ -1,0 +1,188 @@
+@model FeeViewModel
+@{
+    ViewData["Title"] = "Tính phí";
+
+    // Nhãn tiếng Việt cho enum dịch vụ / phương thức thanh toán (Master Data §1, §2).
+    var serviceLabels = new Dictionary<ServiceType, string>
+    {
+        [ServiceType.GiaoHangNhanh] = "Giao hàng nhanh (CPN)",
+        [ServiceType.HoaToc]        = "Hỏa tốc",
+        [ServiceType.TietKiem]      = "Tiết kiệm",
+        [ServiceType.HonHopMES]     = "Hỗn hợp (MES)",
+    };
+    var paymentLabels = new Dictionary<PaymentMethod, string>
+    {
+        [PaymentMethod.SenderPayNow]   = "Người gửi trả ngay",
+        [PaymentMethod.SenderPayLater] = "Người gửi trả sau",
+        [PaymentMethod.ReceiverPayNow] = "Người nhận trả",
+    };
+}
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h1 class="h3 mb-0">Tính phí vận chuyển</h1>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-5">
+        <div class="card shadow-sm">
+            <div class="card-header fw-semibold">Thông tin đơn hàng</div>
+            <div class="card-body">
+                <form asp-controller="Fee" asp-action="Index" method="post">
+                    <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
+
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label asp-for="Weight" class="form-label">Khối lượng (kg) <span class="text-danger">*</span></label>
+                            <input asp-for="Weight" type="number" step="0.01" min="0.01" class="form-control" required />
+                            <span asp-validation-for="Weight" class="text-danger small"></span>
+                        </div>
+                        <div class="col-6">
+                            <label asp-for="ServiceId" class="form-label">Dịch vụ</label>
+                            <select asp-for="ServiceId" class="form-select">
+                                <option value="">Tự động (mọi dịch vụ)</option>
+                                @foreach (ServiceType s in Enum.GetValues(typeof(ServiceType)))
+                                {
+                                    <option value="@((int)s)">@(serviceLabels.TryGetValue(s, out var sl) ? sl : s.ToString())</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-4">
+                            <label asp-for="Width" class="form-label">Rộng (cm)</label>
+                            <input asp-for="Width" type="number" step="0.1" min="0" class="form-control" placeholder="Tùy chọn" />
+                        </div>
+                        <div class="col-4">
+                            <label asp-for="Length" class="form-label">Dài (cm)</label>
+                            <input asp-for="Length" type="number" step="0.1" min="0" class="form-control" placeholder="Tùy chọn" />
+                        </div>
+                        <div class="col-4">
+                            <label asp-for="Height" class="form-label">Cao (cm)</label>
+                            <input asp-for="Height" type="number" step="0.1" min="0" class="form-control" placeholder="Tùy chọn" />
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="PaymentMethodId" class="form-label">Phương thức thanh toán</label>
+                            <select asp-for="PaymentMethodId" class="form-select">
+                                @foreach (PaymentMethod p in Enum.GetValues(typeof(PaymentMethod)))
+                                {
+                                    <option value="@((int)p)">@(paymentLabels.TryGetValue(p, out var pl) ? pl : p.ToString())</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-6">
+                            <label asp-for="CodAmount" class="form-label">Tiền thu hộ (COD)</label>
+                            <div class="input-group">
+                                <input asp-for="CodAmount" type="number" step="1" min="0" class="form-control" placeholder="0" />
+                                <span class="input-group-text">₫</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <label asp-for="CargoValue" class="form-label">Giá trị hàng</label>
+                            <div class="input-group">
+                                <input asp-for="CargoValue" type="number" step="1" min="0" class="form-control" placeholder="0" />
+                                <span class="input-group-text">₫</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <h2 class="h6 text-muted">Địa chỉ người gửi</h2>
+                    <div class="row g-3 mb-2">
+                        <div class="col-6">
+                            <label asp-for="SProvinceId" class="form-label">Tỉnh/Thành</label>
+                            <select id="s-province" asp-for="SProvinceId" class="form-select"></select>
+                        </div>
+                        <div class="col-6">
+                            <label asp-for="SWardId" class="form-label">Phường/Xã</label>
+                            <select id="s-ward" asp-for="SWardId" class="form-select"></select>
+                        </div>
+                    </div>
+
+                    <h2 class="h6 text-muted">Địa chỉ người nhận</h2>
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label asp-for="RProvinceId" class="form-label">Tỉnh/Thành</label>
+                            <select id="r-province" asp-for="RProvinceId" class="form-select"></select>
+                        </div>
+                        <div class="col-6">
+                            <label asp-for="RWardId" class="form-label">Phường/Xã</label>
+                            <select id="r-ward" asp-for="RWardId" class="form-select"></select>
+                        </div>
+                    </div>
+
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-primary">Tính phí</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        @if (Model.Submitted)
+        {
+            @if (!string.IsNullOrWhiteSpace(Model.Message))
+            {
+                <div class="alert @(Model.IsError ? "alert-danger" : "alert-info")" role="alert">
+                    @Model.Message
+                </div>
+            }
+
+            @if (Model.Results != null && Model.Results.Count > 0)
+            {
+                <div class="card shadow-sm">
+                    <div class="card-header fw-semibold">Kết quả (@Model.Results.Count dịch vụ)</div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Dịch vụ</th>
+                                    <th>Lead time</th>
+                                    <th class="text-end">Cước chính</th>
+                                    <th class="text-end">Phí COD</th>
+                                    <th class="text-end">Bảo hiểm</th>
+                                    <th class="text-end">Remote</th>
+                                    <th class="text-end">Tổng</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var f in Model.Results)
+                                {
+                                    <tr>
+                                        <td>@(string.IsNullOrWhiteSpace(f.ServiceName) ? (f.ServiceId?.ToString() ?? "—") : f.ServiceName)</td>
+                                        <td class="small text-muted">@(string.IsNullOrWhiteSpace(f.LeadTime) ? "—" : f.LeadTime)</td>
+                                        <td class="text-end">@f.MainFee.ToString("#,0") ₫</td>
+                                        <td class="text-end">@f.CodFee.ToString("#,0") ₫</td>
+                                        <td class="text-end">@f.InsurFee.ToString("#,0") ₫</td>
+                                        <td class="text-end">@f.RemoteFee.ToString("#,0") ₫</td>
+                                        <td class="text-end fw-semibold">@f.TotalFee.ToString("#,0") ₫</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="alert alert-secondary" role="alert">
+                Nhập thông tin đơn hàng và địa chỉ, sau đó bấm <strong>Tính phí</strong> để xem cước các dịch vụ khả dụng.
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            NT.bindProvinceWard(document.getElementById('s-province'), document.getElementById('s-ward'),
+                { selectedProvince: '@Model.SProvinceId', selectedWard: '@Model.SWardId' });
+            NT.bindProvinceWard(document.getElementById('r-province'), document.getElementById('r-ward'),
+                { selectedProvince: '@Model.RProvinceId', selectedWard: '@Model.RWardId' });
+        });
+    </script>
+}

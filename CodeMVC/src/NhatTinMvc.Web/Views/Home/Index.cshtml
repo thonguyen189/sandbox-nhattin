@@ -1,0 +1,132 @@
+@model DashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+    var auth = Model.Auth;
+}
+
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <span class="fw-semibold">Trạng thái đăng nhập</span>
+                @if (auth.IsAuthenticated)
+                {
+                    <span class="badge bg-success">Đã đăng nhập</span>
+                }
+                else
+                {
+                    <span class="badge bg-secondary">Chưa đăng nhập</span>
+                }
+            </div>
+            <div class="card-body">
+                @if (auth.IsAuthenticated)
+                {
+                    <dl class="row mb-3 small">
+                        <dt class="col-5 text-muted">Partner ID</dt>
+                        <dd class="col-7">@auth.PartnerId</dd>
+
+                        <dt class="col-5 text-muted">Tài khoản</dt>
+                        <dd class="col-7">@auth.Username</dd>
+
+                        <dt class="col-5 text-muted">Access token</dt>
+                        <dd class="col-7"><code>@auth.AccessTokenMasked</code></dd>
+
+                        <dt class="col-5 text-muted">Refresh token</dt>
+                        <dd class="col-7"><code>@auth.RefreshTokenMasked</code></dd>
+
+                        <dt class="col-5 text-muted">Access hết hạn</dt>
+                        <dd class="col-7">@(auth.AccessTokenExpiresAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss") ?? "—")</dd>
+
+                        <dt class="col-5 text-muted">Refresh hết hạn</dt>
+                        <dd class="col-7">@(auth.RefreshTokenExpiresAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss") ?? "—")</dd>
+
+                        <dt class="col-5 text-muted">Đăng nhập lúc</dt>
+                        <dd class="col-7">@(auth.LoginAtUtc?.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss") ?? "—")</dd>
+                    </dl>
+                    <div class="d-flex gap-2">
+                        <form asp-controller="Account" asp-action="Refresh" method="post">
+                            <button type="submit" class="btn btn-outline-primary btn-sm">Làm mới token</button>
+                        </form>
+                        <form asp-controller="Account" asp-action="Logout" method="post">
+                            <button type="submit" class="btn btn-outline-danger btn-sm">Đăng xuất</button>
+                        </form>
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted">Chưa có phiên đăng nhập. Hãy đăng nhập vào sandbox để bắt đầu.</p>
+                    <a asp-controller="Account" asp-action="Login" class="btn btn-primary btn-sm">Đăng nhập</a>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header fw-semibold">Luồng demo</div>
+            <div class="card-body">
+                <ol class="mb-3 ps-3">
+                    <li><a asp-controller="Account" asp-action="Login">Đăng nhập</a> vào sandbox</li>
+                    <li><a asp-controller="Fee" asp-action="Index">Tính phí</a> vận chuyển</li>
+                    <li><a asp-controller="Bills" asp-action="Create">Tạo vận đơn</a></li>
+                    <li>Giả lập trạng thái (đổi trạng thái trong sandbox)</li>
+                    <li>Xem cập nhật live trên <a asp-controller="Bills" asp-action="Index">danh sách</a>/chi tiết vận đơn</li>
+                </ol>
+                <label class="form-label small text-muted mb-1">Webhook callback URL</label>
+                <div class="input-group input-group-sm mb-2">
+                    <input type="text" class="form-control font-monospace" value="@Model.WebhookCallbackUrl" readonly />
+                </div>
+                <p class="small text-muted mb-0">
+                    Đăng ký URL này làm subscription trong AdminPortal sandbox
+                    (<code>:5090/Subscriptions</code>) một lần.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm mt-4">
+    <div class="card-header fw-semibold">Vận đơn gần đây</div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Mã vận đơn</th>
+                    <th>Người nhận</th>
+                    <th class="text-end">Khối lượng (kg)</th>
+                    <th class="text-end">Phí</th>
+                    <th>Trạng thái</th>
+                    <th>Tạo lúc</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.RecentBills.Count == 0)
+                {
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">Chưa có vận đơn</td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var b in Model.RecentBills)
+                    {
+                        <tr>
+                            <td>
+                                <a asp-controller="Bills" asp-action="Details" asp-route-id="@b.BillCode" class="font-monospace">@b.BillCode</a>
+                            </td>
+                            <td>@b.ReceiverName</td>
+                            <td class="text-end">@b.Weight.ToString("0.##")</td>
+                            <td class="text-end">@b.TotalFee.ToString("#,0") ₫</td>
+                            <td>
+                                <span class="badge bg-secondary" data-bill-status data-bill-code="@b.BillCode">
+                                    @b.LastStatusName (#@b.LastStatusId)
+                                </span>
+                            </td>
+                            <td class="small text-muted">@b.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

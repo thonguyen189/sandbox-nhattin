@@ -1,0 +1,105 @@
+@model UpdateBillViewModel
+@{
+    ViewData["Title"] = "Cập nhật vận đơn " + Model.BillCode;
+}
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h1 class="h3 mb-0">
+        Cập nhật vận đơn <span class="font-monospace">@Model.BillCode</span>
+    </h1>
+    <a asp-controller="Bills" asp-action="Details" asp-route-id="@Model.BillCode" class="btn btn-outline-secondary btn-sm">← Chi tiết</a>
+</div>
+
+@if (Model.IsError && !string.IsNullOrEmpty(Model.Message))
+{
+    <div class="alert alert-danger" role="alert">@Model.Message</div>
+}
+
+<form asp-controller="Bills" asp-action="Update" method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+
+    <div class="row g-3">
+        <!-- Người nhận -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header fw-semibold">Vận đơn &amp; người nhận</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label asp-for="BillCode" class="form-label">Mã vận đơn</label>
+                        <input asp-for="BillCode" class="form-control font-monospace" readonly />
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="ReceiverName" class="form-label">Tên người nhận</label>
+                        <input asp-for="ReceiverName" class="form-control" />
+                        <span asp-validation-for="ReceiverName" class="text-danger small"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="ReceiverPhone" class="form-label">Điện thoại người nhận</label>
+                        <input asp-for="ReceiverPhone" class="form-control" />
+                        <span asp-validation-for="ReceiverPhone" class="text-danger small"></span>
+                    </div>
+                    <div class="mb-0">
+                        <label asp-for="ReceiverAddress" class="form-label">Địa chỉ người nhận</label>
+                        <input asp-for="ReceiverAddress" class="form-control" />
+                        <span asp-validation-for="ReceiverAddress" class="text-danger small"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Kiện hàng & thanh toán -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header fw-semibold">Kiện hàng &amp; thanh toán</div>
+                <div class="card-body">
+                    <div class="row g-2">
+                        <div class="col-md-6 mb-2">
+                            <label asp-for="Weight" class="form-label">Khối lượng (kg)</label>
+                            <input asp-for="Weight" type="number" step="0.01" min="0" class="form-control" />
+                            <span asp-validation-for="Weight" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label asp-for="CargoValue" class="form-label">Giá trị hàng (₫)</label>
+                            <input asp-for="CargoValue" type="number" step="1" min="0" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-md-4 mb-2">
+                            <label asp-for="Length" class="form-label">Dài (cm)</label>
+                            <input asp-for="Length" type="number" step="0.1" min="0" class="form-control" />
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <label asp-for="Width" class="form-label">Rộng (cm)</label>
+                            <input asp-for="Width" type="number" step="0.1" min="0" class="form-control" />
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <label asp-for="Height" class="form-label">Cao (cm)</label>
+                            <input asp-for="Height" type="number" step="0.1" min="0" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label asp-for="CargoContent" class="form-label">Nội dung hàng</label>
+                        <input asp-for="CargoContent" class="form-control" />
+                    </div>
+                    <div class="mb-2">
+                        <label asp-for="CodAmount" class="form-label">Tiền thu hộ - COD (₫)</label>
+                        <input asp-for="CodAmount" type="number" step="1" min="0" class="form-control" />
+                    </div>
+                    <div class="mb-0">
+                        <label asp-for="Note" class="form-label">Ghi chú</label>
+                        <textarea asp-for="Note" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2 mt-3">
+        <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+        <a asp-controller="Bills" asp-action="Details" asp-route-id="@Model.BillCode" class="btn btn-outline-secondary">Hủy</a>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

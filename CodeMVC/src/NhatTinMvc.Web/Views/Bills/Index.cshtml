@@ -1,0 +1,69 @@
+@model BillListViewModel
+@{
+    ViewData["Title"] = "Vận đơn";
+}
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h1 class="h3 mb-0">Vận đơn</h1>
+    <a asp-controller="Bills" asp-action="Create" class="btn btn-primary">
+        + Tạo vận đơn
+    </a>
+</div>
+
+@if (Model.IsError && !string.IsNullOrEmpty(Model.Message))
+{
+    <div class="alert alert-danger" role="alert">@Model.Message</div>
+}
+else if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div class="alert alert-info" role="alert">@Model.Message</div>
+}
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Mã vận đơn</th>
+                    <th>Mã tham chiếu</th>
+                    <th>Người nhận</th>
+                    <th class="text-end">Khối lượng (kg)</th>
+                    <th class="text-end">Phí</th>
+                    <th>Trạng thái</th>
+                    <th>Tạo lúc</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Bills.Count == 0)
+                {
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            Chưa có vận đơn nào. <a asp-controller="Bills" asp-action="Create">Tạo vận đơn đầu tiên</a>.
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var b in Model.Bills)
+                    {
+                        <tr>
+                            <td>
+                                <a asp-action="Details" asp-controller="Bills" asp-route-id="@b.BillCode" class="font-monospace">@b.BillCode</a>
+                            </td>
+                            <td class="small text-muted">@(string.IsNullOrEmpty(b.RefCode) ? "—" : b.RefCode)</td>
+                            <td>@b.ReceiverName</td>
+                            <td class="text-end">@b.Weight.ToString("0.##")</td>
+                            <td class="text-end">@b.TotalFee.ToString("#,0") ₫</td>
+                            <td>
+                                <span class="badge bg-secondary" data-bill-status data-bill-code="@b.BillCode">
+                                    @b.LastStatusName (#@b.LastStatusId)
+                                </span>
+                            </td>
+                            <td class="small text-muted">@b.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

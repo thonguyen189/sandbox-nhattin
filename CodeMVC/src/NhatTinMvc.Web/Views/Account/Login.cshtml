@@ -1,0 +1,82 @@
+@model LoginViewModel
+@{
+    ViewData["Title"] = "Đăng nhập";
+    var status = ViewBag.Status as AuthStatusViewModel;
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        @if (status is not null && status.IsAuthenticated)
+        {
+            <div class="card shadow-sm mb-4">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <span class="fw-semibold">Đang đăng nhập</span>
+                    <span class="badge bg-success">Đã đăng nhập</span>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-3 small">
+                        <dt class="col-5 text-muted">Partner ID</dt>
+                        <dd class="col-7">@status.PartnerId</dd>
+
+                        <dt class="col-5 text-muted">Tài khoản</dt>
+                        <dd class="col-7">@status.Username</dd>
+
+                        <dt class="col-5 text-muted">Access token</dt>
+                        <dd class="col-7"><code>@status.AccessTokenMasked</code></dd>
+
+                        <dt class="col-5 text-muted">Refresh token</dt>
+                        <dd class="col-7"><code>@status.RefreshTokenMasked</code></dd>
+                    </dl>
+                    <div class="d-flex gap-2">
+                        <form asp-controller="Account" asp-action="Refresh" method="post">
+                            <button type="submit" class="btn btn-outline-primary btn-sm">Làm mới token</button>
+                        </form>
+                        <form asp-controller="Account" asp-action="Logout" method="post">
+                            <button type="submit" class="btn btn-outline-danger btn-sm">Đăng xuất</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <div class="card shadow-sm">
+            <div class="card-header fw-semibold">Đăng nhập sandbox</div>
+            <div class="card-body">
+                @if (Model.IsError && !string.IsNullOrEmpty(Model.Message))
+                {
+                    <div class="alert alert-danger" role="alert">@Model.Message</div>
+                }
+                else if (!string.IsNullOrEmpty(Model.Message))
+                {
+                    <div class="alert alert-info" role="alert">@Model.Message</div>
+                }
+
+                <form asp-controller="Account" asp-action="Login" method="post">
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="Username" class="form-label">Tài khoản</label>
+                        <input asp-for="Username" class="form-control" autocomplete="username" />
+                        <span asp-validation-for="Username" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Password" class="form-label">Mật khẩu</label>
+                        <input asp-for="Password" type="password" class="form-control" autocomplete="current-password" />
+                        <span asp-validation-for="Password" class="text-danger small"></span>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">Đăng nhập</button>
+                </form>
+
+                <p class="small text-muted mt-3 mb-0">
+                    Tài khoản demo sandbox: <code>sandbox</code> / <code>sandbox123</code>.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

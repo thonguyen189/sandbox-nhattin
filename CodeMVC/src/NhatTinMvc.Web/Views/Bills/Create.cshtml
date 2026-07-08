@@ -1,0 +1,207 @@
+@model CreateBillViewModel
+@{
+    ViewData["Title"] = "Tạo vận đơn";
+}
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h1 class="h3 mb-0">Tạo vận đơn</h1>
+    <a asp-controller="Bills" asp-action="Index" class="btn btn-outline-secondary btn-sm">← Danh sách</a>
+</div>
+
+@if (Model.IsError && !string.IsNullOrEmpty(Model.Message))
+{
+    <div class="alert alert-danger" role="alert">@Model.Message</div>
+}
+
+<form asp-controller="Bills" asp-action="Create" method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+
+    <div class="row g-3 mb-2">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header fw-semibold">Thông tin chung</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label asp-for="RefCode" class="form-label">Mã tham chiếu</label>
+                            <input asp-for="RefCode" class="form-control" placeholder="Tùy chọn" />
+                            <span asp-validation-for="RefCode" class="text-danger small"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Người gửi -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header fw-semibold">Người gửi</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label asp-for="SName" class="form-label">Họ tên</label>
+                        <input asp-for="SName" class="form-control" />
+                        <span asp-validation-for="SName" class="text-danger small"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="SPhone" class="form-label">Điện thoại</label>
+                        <input asp-for="SPhone" class="form-control" />
+                        <span asp-validation-for="SPhone" class="text-danger small"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="SAddress" class="form-label">Địa chỉ</label>
+                        <input asp-for="SAddress" class="form-control" />
+                        <span asp-validation-for="SAddress" class="text-danger small"></span>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <label asp-for="SProvinceCode" class="form-label">Tỉnh/Thành</label>
+                            <select asp-for="SProvinceCode" id="s-province" class="form-select"></select>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="SWardCode" class="form-label">Phường/Xã</label>
+                            <select asp-for="SWardCode" id="s-ward" class="form-select"></select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Người nhận -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header fw-semibold">Người nhận</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label asp-for="RName" class="form-label">Họ tên</label>
+                        <input asp-for="RName" class="form-control" />
+                        <span asp-validation-for="RName" class="text-danger small"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="RPhone" class="form-label">Điện thoại</label>
+                        <input asp-for="RPhone" class="form-control" />
+                        <span asp-validation-for="RPhone" class="text-danger small"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="RAddress" class="form-label">Địa chỉ</label>
+                        <input asp-for="RAddress" class="form-control" />
+                        <span asp-validation-for="RAddress" class="text-danger small"></span>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <label asp-for="RProvinceCode" class="form-label">Tỉnh/Thành</label>
+                            <select asp-for="RProvinceCode" id="r-province" class="form-select"></select>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="RWardCode" class="form-label">Phường/Xã</label>
+                            <select asp-for="RWardCode" id="r-ward" class="form-select"></select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Kiện hàng -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header fw-semibold">Kiện hàng</div>
+                <div class="card-body">
+                    <div class="row g-2">
+                        <div class="col-md-6 mb-2">
+                            <label asp-for="Weight" class="form-label">Khối lượng (kg)</label>
+                            <input asp-for="Weight" type="number" step="0.01" min="0.01" class="form-control" />
+                            <span asp-validation-for="Weight" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label asp-for="CargoTypeId" class="form-label">Loại hàng</label>
+                            <select asp-for="CargoTypeId" class="form-select">
+                                <option value="1" selected="@(Model.CargoTypeId == (int)CargoType.ChungTu)">Chứng từ (1)</option>
+                                <option value="2" selected="@(Model.CargoTypeId == (int)CargoType.HangHoa)">Hàng hóa (2)</option>
+                                <option value="3" selected="@(Model.CargoTypeId == (int)CargoType.HangLanh)">Hàng lạnh (3)</option>
+                                <option value="4" selected="@(Model.CargoTypeId == (int)CargoType.SinhPham)">Sinh phẩm (4)</option>
+                                <option value="5" selected="@(Model.CargoTypeId == (int)CargoType.MauBenhPham)">Mẫu bệnh phẩm (5)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-md-4 mb-2">
+                            <label asp-for="Length" class="form-label">Dài (cm)</label>
+                            <input asp-for="Length" type="number" step="0.1" min="0" class="form-control" />
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <label asp-for="Width" class="form-label">Rộng (cm)</label>
+                            <input asp-for="Width" type="number" step="0.1" min="0" class="form-control" />
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <label asp-for="Height" class="form-label">Cao (cm)</label>
+                            <input asp-for="Height" type="number" step="0.1" min="0" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label asp-for="CargoContent" class="form-label">Nội dung hàng</label>
+                        <input asp-for="CargoContent" class="form-control" />
+                    </div>
+                    <div class="mb-0">
+                        <label asp-for="CargoValue" class="form-label">Giá trị hàng (₫)</label>
+                        <input asp-for="CargoValue" type="number" step="1" min="0" class="form-control" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dịch vụ -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header fw-semibold">Dịch vụ &amp; thanh toán</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label asp-for="ServiceId" class="form-label">Dịch vụ</label>
+                        <select asp-for="ServiceId" class="form-select">
+                            <option value="90" selected="@(Model.ServiceId == (int)ServiceType.GiaoHangNhanh)">Giao hàng nhanh - CPN (90)</option>
+                            <option value="81" selected="@(Model.ServiceId == (int)ServiceType.HoaToc)">Hỏa tốc (81)</option>
+                            <option value="91" selected="@(Model.ServiceId == (int)ServiceType.TietKiem)">Tiết kiệm (91)</option>
+                            <option value="21" selected="@(Model.ServiceId == (int)ServiceType.HonHopMES)">Hỗn hợp - MES (21)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="PaymentMethodId" class="form-label">Hình thức thanh toán</label>
+                        <select asp-for="PaymentMethodId" class="form-select">
+                            <option value="10" selected="@(Model.PaymentMethodId == (int)PaymentMethod.SenderPayNow)">Người gửi trả ngay (10)</option>
+                            <option value="11" selected="@(Model.PaymentMethodId == (int)PaymentMethod.SenderPayLater)">Người gửi trả sau (11)</option>
+                            <option value="20" selected="@(Model.PaymentMethodId == (int)PaymentMethod.ReceiverPayNow)">Người nhận trả (20)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="CodAmount" class="form-label">Tiền thu hộ - COD (₫)</label>
+                        <input asp-for="CodAmount" type="number" step="1" min="0" class="form-control" />
+                    </div>
+                    <div class="mb-0">
+                        <label asp-for="Note" class="form-label">Ghi chú</label>
+                        <textarea asp-for="Note" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2 mt-3">
+        <button type="submit" class="btn btn-primary">Tạo vận đơn</button>
+        <a asp-controller="Bills" asp-action="Index" class="btn btn-outline-secondary">Hủy</a>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            NT.bindProvinceWard(
+                document.getElementById("s-province"),
+                document.getElementById("s-ward"),
+                { selectedProvince: "@Model.SProvinceCode", selectedWard: "@Model.SWardCode" });
+
+            NT.bindProvinceWard(
+                document.getElementById("r-province"),
+                document.getElementById("r-ward"),
+                { selectedProvince: "@Model.RProvinceCode", selectedWard: "@Model.RWardCode" });
+        });
+    </script>
+}
