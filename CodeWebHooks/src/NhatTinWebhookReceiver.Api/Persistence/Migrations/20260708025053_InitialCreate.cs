@@ -5,10 +5,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace NhatTinWebhookReceiver.Api.Persistence.Migrations
 {
-    /// <inheritdoc />
     public partial class InitialCreate : Migration
     {
-        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
@@ -25,15 +23,24 @@ namespace NhatTinWebhookReceiver.Api.Persistence.Migrations
                     BillNo = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     StatusId = table.Column<int>(type: "int", nullable: true),
                     StatusName = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    RefCode = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    RefCode = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    StatusTime = table.Column<long>(type: "bigint", nullable: true),
+                    PushTime = table.Column<long>(type: "bigint", nullable: true),
+                    DedupeKey = table.Column<string>(type: "nvarchar(450)", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_ReceivedWebhooks", x => x.Id);
                 });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ReceivedWebhooks_DedupeKey",
+                table: "ReceivedWebhooks",
+                column: "DedupeKey",
+                unique: true,
+                filter: "[DedupeKey] IS NOT NULL");
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(

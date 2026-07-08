@@ -23,7 +23,7 @@ public sealed class WebhookController : ControllerBase
         if (Request.ContentLength is > 0)
         {
             using var reader = new StreamReader(Request.Body, Encoding.UTF8);
-            body = await reader.ReadToEndAsync(ct);
+            body = await reader.ReadToEndAsync();
         }
 
         var record = new ReceivedWebhook
