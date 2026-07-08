@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using NhatTinSandbox.Api.Json;
 using Xunit;
 
 namespace NhatTinSandbox.Tests;
@@ -20,7 +21,7 @@ public sealed class BillCancelDtoSerializationTests
 {
     private static readonly JsonSerializerOptions ApiJsonOptions = new()
     {
-        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+        PropertyNamingPolicy = SnakeCaseLowerNamingPolicy.Instance
     };
 
     [Fact]

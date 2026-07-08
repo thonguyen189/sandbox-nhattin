@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using NhatTinSandbox.Api.Extensions;
+using NhatTinSandbox.Api.Json;
 using NhatTinSandbox.Infrastructure.Auth;
 using NhatTinSandbox.Infrastructure.Persistence;
 
@@ -11,11 +12,12 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
 
 // snake_case for BOTH inbound binding (s_name -> SName) and outbound JSON,
-// matching NhatTinAPIDocumentation/vi/ field names. .NET 8 built-in policy.
+// matching NhatTinAPIDocumentation/vi/ field names. Net6.0 port of the .NET 8
+// built-in JsonNamingPolicy.SnakeCaseLower (see SnakeCaseLowerNamingPolicy).
 builder.Services.AddControllers().AddJsonOptions(o =>
 {
-    o.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower;
-    o.JsonSerializerOptions.DictionaryKeyPolicy = JsonNamingPolicy.SnakeCaseLower;
+    o.JsonSerializerOptions.PropertyNamingPolicy = SnakeCaseLowerNamingPolicy.Instance;
+    o.JsonSerializerOptions.DictionaryKeyPolicy = SnakeCaseLowerNamingPolicy.Instance;
 });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
